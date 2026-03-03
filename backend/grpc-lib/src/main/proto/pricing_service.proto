@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package com.ctse.grpc.pricing;
+
+option java_multiple_files = true;
+option java_package = "com.ctse.grpc.pricing";
+option java_outer_classname = "PricingServiceProto";
+
+// ─── Messages ─────────────────────────────────────────────────────────────────
+
+message GetPriceRequest {
+  string service_type = 1;   // e.g. "WASH", "DRY_CLEAN", "IRON"
+  string item_type    = 2;   // e.g. "SHIRT", "TROUSER", "JACKET"
+  int32  quantity     = 3;
+}
+
+message GetPriceResponse {
+  string service_type    = 1;
+  string item_type       = 2;
+  int32  quantity        = 3;
+  double unit_price      = 4;
+  double total_price     = 5;
+  string currency        = 6;   // ISO-4217, e.g. "USD"
+}
+
+message GetAllPricesRequest {
+  // optional filter; empty means return all
+  string service_type = 1;
+}
+
+message PriceEntry {
+  string service_type = 1;
+  string item_type    = 2;
+  double unit_price   = 3;
+  string currency     = 4;
+}
+
+message GetAllPricesResponse {
+  repeated PriceEntry prices = 1;
+}
+
+// ─── Service definition ───────────────────────────────────────────────────────
+
+// PricingService – called by order-service during order creation to
+// calculate the total cost without an extra HTTP round-trip.
+service PricingService {
+  // Returns the computed price for a single line item.
+  rpc GetPrice(GetPriceRequest) returns (GetPriceResponse);
+
+  // Returns the full price catalogue (optionally filtered by service type).
+  rpc GetAllPrices(GetAllPricesRequest) returns (GetAllPricesResponse);
+}

@@ -1,0 +1,55 @@
+syntax = "proto3";
+
+package com.ctse.grpc.order;
+
+option java_multiple_files = true;
+option java_package = "com.ctse.grpc.order";
+option java_outer_classname = "OrderServiceProto";
+
+// ─── Messages ─────────────────────────────────────────────────────────────────
+
+enum OrderStatus {
+  PENDING    = 0;
+  CONFIRMED  = 1;
+  PROCESSING = 2;
+  READY      = 3;
+  DELIVERED  = 4;
+  CANCELLED  = 5;
+}
+
+message UpdateOrderStatusRequest {
+  string      order_id       = 1;
+  OrderStatus status         = 2;
+  string      updated_by     = 3;   // service name that triggered the update
+  string      reason         = 4;   // optional human-readable reason
+}
+
+message UpdateOrderStatusResponse {
+  bool   success   = 1;
+  string order_id  = 2;
+  string message   = 3;
+}
+
+message GetOrderSummaryRequest {
+  string order_id = 1;
+}
+
+message GetOrderSummaryResponse {
+  string      order_id     = 1;
+  string      customer_id  = 2;
+  double      total_amount = 3;
+  string      currency     = 4;
+  OrderStatus status       = 5;
+}
+
+// ─── Service definition ───────────────────────────────────────────────────────
+
+// OrderService – called by payment-service to update order status after
+// a payment is processed, avoiding an HTTP callback.
+service OrderService {
+  // Updates the status of an order (e.g. CONFIRMED after payment success).
+  rpc UpdateOrderStatus(UpdateOrderStatusRequest) returns (UpdateOrderStatusResponse);
+
+  // Returns a lightweight order summary used by payment-service.
+  rpc GetOrderSummary(GetOrderSummaryRequest) returns (GetOrderSummaryResponse);
+}

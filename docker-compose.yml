@@ -1,0 +1,181 @@
+version: "3.9"
+
+services:
+
+  # ──────────────────────────────────────────────
+  # PostgreSQL  –  shared instance, one DB per service
+  # ──────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: ctse
+      POSTGRES_PASSWORD: ctse_password
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ctse"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ──────────────────────────────────────────────
+  # Auth Service  –  HTTP 8084 | gRPC 9094
+  # ──────────────────────────────────────────────
+  auth-service:
+    build:
+      context: ./backend
+      dockerfile: auth-service/Dockerfile
+    container_name: auth-service
+    ports:
+      - "8084:8084"
+      - "9094:9094"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - JWT_SECRET=dGhpcy1pcy1hLXZlcnktc2VjdXJlLXNlY3JldC1rZXktZm9yLWxhdW5kcnktYXBw
+      - DB_URL=jdbc:postgresql://postgres:5432/authdb
+      - DB_USERNAME=ctse
+      - DB_PASSWORD=ctse_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8084/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ──────────────────────────────────────────────
+  # Pricing Service  –  HTTP 8081 | gRPC 9091
+  # ──────────────────────────────────────────────
+  pricing-service:
+    build:
+      context: ./backend
+      dockerfile: pricing-service/Dockerfile
+    container_name: pricing-service
+    ports:
+      - "8081:8081"
+      - "9091:9091"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - DB_URL=jdbc:postgresql://postgres:5432/pricingdb
+      - DB_USERNAME=ctse
+      - DB_PASSWORD=ctse_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ──────────────────────────────────────────────
+  # Order Service  –  HTTP 8082
+  # ──────────────────────────────────────────────
+  order-service:
+    build:
+      context: ./backend
+      dockerfile: order-service/Dockerfile
+    container_name: order-service
+    ports:
+      - "8082:8082"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - DB_URL=jdbc:postgresql://postgres:5432/orderdb
+      - DB_USERNAME=ctse
+      - DB_PASSWORD=ctse_password
+      - PRICING_SERVICE_GRPC_HOST=pricing-service
+      - PRICING_SERVICE_GRPC_PORT=9091
+    depends_on:
+      postgres:
+        condition: service_healthy
+      pricing-service:
+        condition: service_started
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ──────────────────────────────────────────────
+  # Payment Service  –  HTTP 8083
+  # ──────────────────────────────────────────────
+  payment-service:
+    build:
+      context: ./backend
+      dockerfile: payment-service/Dockerfile
+    container_name: payment-service
+    ports:
+      - "8083:8083"
+    environment:
+      - SPRING_PROFILES_ACTIVE=default
+      - DB_URL=jdbc:postgresql://postgres:5432/paymentdb
+      - DB_USERNAME=ctse
+      - DB_PASSWORD=ctse_password
+      - ORDER_SERVICE_GRPC_HOST=order-service
+    depends_on:
+      postgres:
+        condition: service_healthy
+      order-service:
+        condition: service_started
+    networks:
+      - microservices-net
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # ──────────────────────────────────────────────
+  # API Gateway  –  port 8080  (single entry point)
+  # ──────────────────────────────────────────────
+  gateway:
+    build:
+      context: ./backend
+      dockerfile: gateway/Dockerfile
+    container_name: gateway
+    ports:
+      - "8080:8080"
+    environment:
+      - AUTH_SERVICE_URL=http://auth-service:8084
+      - PRICING_SERVICE_URL=http://pricing-service:8081
+      - ORDER_SERVICE_URL=http://order-service:8082
+      - PAYMENT_SERVICE_URL=http://payment-service:8083
+    depends_on:
+      - auth-service
+      - pricing-service
+      - order-service
+      - payment-service
+    networks:
+      - microservices-net
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+
+networks:
+  microservices-net:
+    driver: bridge
+
