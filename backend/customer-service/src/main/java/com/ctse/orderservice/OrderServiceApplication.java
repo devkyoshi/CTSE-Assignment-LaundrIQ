@@ -1,12 +1,13 @@
-package com.ctse.pricingservice;
+package com.ctse.orderservice;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class PricingServiceApplication {
+public class OrderServiceApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(PricingServiceApplication.class, args);
+        SpringApplication.run(OrderServiceApplication.class, args);
     }
+
 }

@@ -21,7 +21,7 @@
         <module>common</module>
         <module>grpc-lib</module>
         <module>auth-service</module>
-        <module>pricing-service</module>
+        <module>customer-service</module>
         <module>order-service</module>
         <module>payment-service</module>
         <module>gateway</module>

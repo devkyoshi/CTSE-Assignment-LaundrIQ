@@ -12,19 +12,19 @@ A Spring Boot microservices backend for a laundry management system, built as pa
                          │          (Spring Cloud Gateway)              │
                          └──────┬──────────┬───────────┬───────────────┘
                                 │          │           │           │
-                         /api/auth  /api/pricing  /api/orders  /api/payments
+                         /api/auth  /api/customers  /api/orders  /api/payments
                                 │          │           │           │
                     ┌───────────┘    ┌─────┘     ┌────┘     ┌────┘
                     ▼                ▼            ▼          ▼
              ┌──────────┐   ┌──────────────┐ ┌────────┐ ┌─────────┐
-             │   auth   │   │   pricing    │ │ order  │ │ payment │
-             │ :8084    │   │   :8081      │ │ :8082  │ │  :8083  │
-             │ gRPC:9094│   │   gRPC:9091  │ │        │ │         │
+             │   auth   │   │   customer    │ │ order  │ │ payment │
+             │ :8084    │   │   :8086      │ │ :8082  │ │  :8083  │
+             │ gRPC:9094│   │   gRPC:9096  │ │        │ │         │
              └────┬─────┘   └──────┬───────┘ └───┬────┘ └────┬────┘
                   │                │  gRPC         │ gRPC      │
                   │                └──────────────►│           │
                   │                               gRPC         │
-                  │                               pricing ──►  │
+                  │                               customer ──►  │
                   │                                            │
                   └──────────────────────────────────────────►│ (token validation)
                                                                │
@@ -34,7 +34,7 @@ A Spring Boot microservices backend for a laundry management system, built as pa
                   │  PostgreSQL │
                   │    :5432    │
                   │  authdb     │
-                  │  pricingdb  │
+                  │  customer_db  │
                   │  orderdb    │
                   │  paymentdb  │
                   └─────────────┘
@@ -43,7 +43,7 @@ A Spring Boot microservices backend for a laundry management system, built as pa
 ### gRPC communication
 | Caller | Callee | Purpose |
 |---|---|---|
-| `order-service` | `pricing-service` (`:9091`) | Resolve item prices at order creation |
+| `order-service` | `customer-service` (`:9096`) | Resolve item prices at order creation |
 | `payment-service` | `order-service` | Update order status after payment |
 | Any service | `auth-service` (`:9094`) | Validate JWT tokens without HTTP round-trips |
 
@@ -56,7 +56,7 @@ A Spring Boot microservices backend for a laundry management system, built as pa
 | `common` | Library JAR | Shared `ApiResponse<T>`, exceptions, `GlobalExceptionHandler` |
 | `grpc-lib` | Library JAR | Proto definitions + generated gRPC stubs |
 | `auth-service` | Spring Boot App | User registration, login, JWT issuance & validation |
-| `pricing-service` | Spring Boot App | Laundry price catalogue management |
+| `customer-service` | Spring Boot App | Customer profiles, addresses, order history, preferences |
 | `order-service` | Spring Boot App | Order lifecycle management |
 | `payment-service` | Spring Boot App | Payment processing |
 | `gateway` | Spring Boot App | API Gateway — single entry point |
@@ -103,10 +103,10 @@ ctse-assignment/
     ├── grpc-lib/               # Protobuf definitions & generated stubs
     │   └── src/main/proto/
     │       ├── auth_service.proto
-    │       ├── pricing_service.proto
+    │       ├── customer_service.proto
     │       └── order_service.proto
     ├── auth-service/
-    ├── pricing-service/
+    ├── customer-service/
     ├── order-service/
     ├── payment-service/
     └── gateway/
@@ -162,7 +162,7 @@ Then run each service from its directory:
 ```bash
 cd backend
 ./mvnw -pl auth-service    spring-boot:run
-./mvnw -pl pricing-service spring-boot:run
+./mvnw -pl customer-service spring-boot:run
 ./mvnw -pl order-service   spring-boot:run
 ./mvnw -pl payment-service spring-boot:run
 ./mvnw -pl gateway         spring-boot:run
@@ -208,16 +208,16 @@ All requests go through the gateway at `http://localhost:8080`.
 }
 ```
 
-### Pricing Service — `/api/pricing`
+### Customer Service — `/api/customers`
 
 | Method | Path | Description |
 |---|---|---|
-| `GET` | `/api/pricing` | List all prices (optional `?serviceType=`) |
-| `GET` | `/api/pricing/{id}` | Get price entry by ID |
-| `GET` | `/api/pricing/calculate?serviceType=&itemType=&quantity=` | Calculate total price |
-| `POST` | `/api/pricing` | Create price entry |
-| `PUT` | `/api/pricing/{id}` | Update price entry |
-| `DELETE` | `/api/pricing/{id}` | Delete price entry |
+| `GET` | `/api/customers` | List all prices (optional `?serviceType=`) |
+| `GET` | `/api/customers/{id}` | Get price entry by ID |
+| `GET` | `/api/customers/calculate?serviceType=&itemType=&quantity=` | Calculate total price |
+| `POST` | `/api/customers` | Create price entry |
+| `PUT` | `/api/customers/{id}` | Update price entry |
+| `DELETE` | `/api/customers/{id}` | Delete price entry |
 
 **Create price entry request:**
 ```json
@@ -267,7 +267,7 @@ Error responses:
 ```json
 {
   "success": false,
-  "message": "PriceCatalogue with id '99' not found",
+  "message": "CustomerProfile with id '99' not found",
   "timestamp": "2026-03-03T10:00:00.000Z"
 }
 ```
@@ -284,11 +284,11 @@ Each service reads the following environment variables (with defaults for local 
 | `DB_USERNAME` | `ctse` | All services |
 | `DB_PASSWORD` | `ctse_password` | All services |
 | `JWT_SECRET` | Base64 dev secret | `auth-service` |
-| `PRICING_SERVICE_GRPC_HOST` | `localhost` | `order-service` |
-| `PRICING_SERVICE_GRPC_PORT` | `9091` | `order-service` |
+| `CUSTOMER_SERVICE_GRPC_HOST` | `localhost` | `order-service` |
+| `CUSTOMER_SERVICE_GRPC_PORT` | `9096` | `order-service` |
 | `ORDER_SERVICE_GRPC_HOST` | `localhost` | `payment-service` |
 | `AUTH_SERVICE_URL` | `http://localhost:8084` | `gateway` |
-| `PRICING_SERVICE_URL` | `http://localhost:8081` | `gateway` |
+| `CUSTOMER_SERVICE_URL` | `http://localhost:8086` | `gateway` |
 | `ORDER_SERVICE_URL` | `http://localhost:8082` | `gateway` |
 | `PAYMENT_SERVICE_URL` | `http://localhost:8083` | `gateway` |
 
@@ -302,7 +302,7 @@ Each service reads the following environment variables (with defaults for local 
 |---|---|---|
 | `gateway` | 8080 | — |
 | `auth-service` | 8084 | 9094 |
-| `pricing-service` | 8081 | 9091 |
+| `customer-service` | 8086 | 9096 |
 | `order-service` | 8082 | — |
 | `payment-service` | 8083 | — |
 | `postgres` | 5432 | — |
@@ -332,7 +332,7 @@ Located in `backend/grpc-lib/src/main/proto/`:
 | File | Service | Methods |
 |---|---|---|
 | `auth_service.proto` | `AuthService` | `ValidateToken`, `GetUser` |
-| `pricing_service.proto` | `PricingService` | `GetPrice`, `GetAllPrices` |
+| `customer_service.proto` | `CustomerService` | `GetPrice`, `GetAllPrices` |
 | `order_service.proto` | `OrderService` | `UpdateOrderStatus`, `GetOrderSummary` |
 
 Stubs are generated automatically during `mvn compile` via `protobuf-maven-plugin`.
@@ -364,5 +364,5 @@ docker compose down
 docker compose down -v
 
 # Rebuild a single service after code changes
-docker compose up -d --build pricing-service
+docker compose up -d --build customer-service
 ```

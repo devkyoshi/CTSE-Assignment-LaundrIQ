@@ -1,14 +1,14 @@
 # AGENTS.md — AI Coding Agent Guide for Laundry Microservices Platform
 
 ## Big Picture Architecture
-- **Spring Boot microservices** for laundry management: `auth-service`, `pricing-service`, `order-service`, `payment-service`, and `gateway` (API Gateway).
+- **Spring Boot microservices** for laundry management: `auth-service`, `customer-service`, `order-service`, `payment-service`, and `gateway` (API Gateway).
 - **gRPC** is used for inter-service communication (see `backend/grpc-lib/src/main/proto/`).
 - **PostgreSQL** is used for persistence; each service has its own database.
 - All HTTP requests flow through the `gateway` at `http://localhost:8080`.
 
 ## Service Boundaries & Data Flows
 - **Auth Service**: Handles user registration, login, JWT issuance/validation. Other services validate tokens via gRPC (`ValidateToken`).
-- **Pricing Service**: Manages price catalogue. `order-service` calls it via gRPC to resolve prices.
+- **Customer Service**: Manages customer profiles, addresses, order history, and preferences.
 - **Order Service**: Manages order lifecycle. `payment-service` updates order status via gRPC after payment.
 - **Payment Service**: Handles payment processing.
 - **Gateway**: Routes all HTTP API traffic to backend services.
@@ -30,7 +30,6 @@
 
 ## Integration Points & Patterns
 - **gRPC calls**:
-  - `order-service` → `pricing-service`: price resolution
   - `payment-service` → `order-service`: order status update
   - Any service → `auth-service`: token validation
 - **API Gateway**: All HTTP endpoints are routed via `gateway`.

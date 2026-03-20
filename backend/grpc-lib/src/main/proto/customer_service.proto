@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package com.ctse.grpc.customer;
+
+option java_package = "com.ctse.grpc.customer";
+option java_outer_classname = "CustomerServiceProto";
+
+service CustomerService {
+    rpc GetCustomerProfile (GetCustomerRequest) returns (CustomerProfileResponse);
+}
+
+message GetCustomerRequest {
+    string customer_id = 1;
+}
+
+message CustomerProfileResponse {
+    string id = 1;
+    string name = 2;
+    string address = 3;
+    string preferences = 4;
+}
