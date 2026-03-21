@@ -1,6 +1,5 @@
 package com.ctse.customer.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -18,7 +17,10 @@ public class Address {
     private Long id;
 
     @Column(nullable = false)
-    private String addressLine;
+    private String customerId;  // References User.id from auth service
+
+    @Column(nullable = false)
+    private String addressLine1;
 
     private String addressLine2;
 
@@ -34,10 +36,10 @@ public class Address {
     @Column(nullable = false)
     private String country;
 
+    private String phoneNumber;
+
+    @Column(nullable = false)
     private Boolean isDefault = false;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "customer_id", nullable = false)
-    @JsonIgnore
-    private Customer customer;
+    private String addressType; // HOME, WORK, OTHER
 }

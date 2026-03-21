@@ -4,18 +4,15 @@ import com.ctse.common.exception.ResourceNotFoundException;
 import com.ctse.customer.dto.*;
 import com.ctse.customer.mapper.CustomerMapper;
 import com.ctse.customer.model.Address;
-import com.ctse.customer.model.Customer;
-import com.ctse.customer.model.Preferences;
+import com.ctse.customer.model.CustomerPreferences;
 import com.ctse.customer.repositary.AddressRepository;
-import com.ctse.customer.repositary.CustomerRepository;
-import com.ctse.customer.repositary.PreferencesRepository;
+import com.ctse.customer.repositary.CustomerPreferencesRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -23,155 +20,138 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CustomerService {
 
-    private final CustomerRepository customerRepository;
     private final AddressRepository addressRepository;
-    private final PreferencesRepository preferencesRepository;
+    private final CustomerPreferencesRepository preferencesRepository;
     private final CustomerMapper customerMapper;
 
-    // Profile Management
-    public CustomerResponse findByCustomerId(String customerId) {
-        log.info("Fetching customer with customerId: {}", customerId);
-        Customer customer = customerRepository.findByCustomerId(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer", "customerId", customerId));
-        return customerMapper.toDto(customer);
+    // ==================== Profile Management ====================
+
+    public ProfileResponse getProfile(String customerId) {
+        log.info("Fetching profile for customer: {}", customerId);
+        // Note: This would typically call Auth Service to get user details
+        // For now, return a placeholder - would need Feign client to auth-service
+        ProfileResponse response = new ProfileResponse();
+        response.setId(customerId);
+        // Would fetch from auth-service via REST call
+        return response;
     }
 
-    @Transactional
-    public CustomerResponse createCustomer(CustomerRequest request) {
-        log.info("Creating new customer with email: {}", request.getEmail());
+    // ==================== Address Management ====================
 
-        if (customerRepository.existsByEmail(request.getEmail())) {
-            throw new IllegalArgumentException("Email already exists");
+    @Transactional
+    public AddressDto addAddress(AddressRequest request) {
+        log.info("Adding address for customer: {}", request.getCustomerId());
+
+        if (request.getIsDefault() || isFirstAddress(request.getCustomerId())) {
+            unsetDefaultAddress(request.getCustomerId());
+            request.setIsDefault(true);
         }
 
-        String customerId = "CUST-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase();
-        Customer customer = customerMapper.toEntity(request, customerId);
-        Customer savedCustomer = customerRepository.save(customer);
-        log.info("Customer created successfully with customerId: {}", savedCustomer.getCustomerId());
-        return customerMapper.toDto(savedCustomer);
+        Address address = customerMapper.toEntity(request);
+        Address saved = addressRepository.save(address);
+        log.info("Address added successfully with id: {}", saved.getId());
+        return customerMapper.toDto(saved);
     }
 
-    @Transactional
-    public CustomerResponse updateCustomer(String customerId, CustomerRequest request) {
-        log.info("Updating customer: {}", customerId);
-        Customer existing = customerRepository.findByCustomerId(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer", "customerId", customerId));
-
-        existing.setName(request.getName());
-        existing.setEmail(request.getEmail());
-        existing.setPhoneNumber(request.getPhoneNumber());
-
-        Customer updated = customerRepository.save(existing);
-        log.info("Customer updated successfully: {}", customerId);
-        return customerMapper.toDto(updated);
-    }
-
-    @Transactional
-    public void deleteCustomer(String customerId) {
-        log.info("Deleting customer: {}", customerId);
-        Customer customer = customerRepository.findByCustomerId(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer", "customerId", customerId));
-        customerRepository.delete(customer);
-        log.info("Customer deleted successfully: {}", customerId);
-    }
-
-    // Address Management
-    @Transactional
-    public AddressResponse addAddress(String customerId, AddressRequest request) {
-        log.info("Adding address for customer: {}", customerId);
-        Customer customer = customerRepository.findByCustomerId(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer", "customerId", customerId));
-
-        if (Boolean.TRUE.equals(request.getIsDefault())) {
-            addressRepository.findByCustomerCustomerId(customerId)
-                    .forEach(address -> address.setIsDefault(false));
-        }
-
-        Address address = customerMapper.toEntity(request, customer);
-        Address savedAddress = addressRepository.save(address);
-        log.info("Address added successfully with id: {}", savedAddress.getId());
-        return customerMapper.toDto(savedAddress);
-    }
-
-    public List<AddressResponse> getAddresses(String customerId) {
+    public List<AddressDto> getAddresses(String customerId) {
         log.info("Fetching addresses for customer: {}", customerId);
-        if (!customerRepository.existsByCustomerId(customerId)) {
-            throw new ResourceNotFoundException("Customer", "customerId", customerId);
-        }
-        return addressRepository.findByCustomerCustomerId(customerId).stream()
+        return addressRepository.findByCustomerId(customerId).stream()
                 .map(customerMapper::toDto)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public AddressResponse updateAddress(String customerId, Long addressId, AddressRequest request) {
-        log.info("Updating address {} for customer: {}", addressId, customerId);
-        Address address = addressRepository.findByIdAndCustomerCustomerId(addressId, customerId)
+    public AddressDto updateAddress(Long addressId, AddressRequest request) {
+        log.info("Updating address with id: {}", addressId);
+
+        Address existing = addressRepository.findById(addressId)
                 .orElseThrow(() -> new ResourceNotFoundException("Address", addressId));
 
-        address.setAddressLine(request.getAddressLine());
-        address.setAddressLine2(request.getAddressLine2());
-        address.setCity(request.getCity());
-        address.setState(request.getState());
-        address.setPostalCode(request.getPostalCode());
-        address.setCountry(request.getCountry());
-
-        if (Boolean.TRUE.equals(request.getIsDefault()) && !Boolean.TRUE.equals(address.getIsDefault())) {
-            addressRepository.findByCustomerCustomerId(customerId)
-                    .forEach(addr -> addr.setIsDefault(false));
-            address.setIsDefault(true);
+        // Validate ownership
+        if (!existing.getCustomerId().equals(request.getCustomerId())) {
+            throw new RuntimeException("Address does not belong to this customer");
         }
 
-        Address updated = addressRepository.save(address);
+        // Handle default address logic
+        if (request.getIsDefault() && !existing.getIsDefault()) {
+            unsetDefaultAddress(request.getCustomerId());
+        }
+
+        // Update fields
+        existing.setAddressLine1(request.getAddressLine1());
+        existing.setAddressLine2(request.getAddressLine2());
+        existing.setCity(request.getCity());
+        existing.setState(request.getState());
+        existing.setPostalCode(request.getPostalCode());
+        existing.setCountry(request.getCountry());
+        existing.setPhoneNumber(request.getPhoneNumber());
+        existing.setIsDefault(request.getIsDefault());
+        existing.setAddressType(request.getAddressType());
+
+        Address updated = addressRepository.save(existing);
         log.info("Address updated successfully");
         return customerMapper.toDto(updated);
     }
 
     @Transactional
-    public void deleteAddress(String customerId, Long addressId) {
-        log.info("Deleting address {} for customer: {}", addressId, customerId);
-        Address address = addressRepository.findByIdAndCustomerCustomerId(addressId, customerId)
+    public void deleteAddress(Long addressId, String customerId) {
+        log.info("Deleting address with id: {} for customer: {}", addressId, customerId);
+
+        Address address = addressRepository.findById(addressId)
                 .orElseThrow(() -> new ResourceNotFoundException("Address", addressId));
-        addressRepository.delete(address);
-        log.info("Address deleted successfully");
-    }
 
-    // Preferences Management
-    @Transactional
-    public PreferencesResponse setPreferences(String customerId, PreferencesRequest request) {
-        log.info("Setting preferences for customer: {}", customerId);
-        Customer customer = customerRepository.findByCustomerId(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Customer", "customerId", customerId));
-
-        Preferences preferences = preferencesRepository.findByCustomerCustomerId(customerId)
-                .orElse(null);
-
-        if (preferences == null) {
-            preferences = customerMapper.toEntity(request, customer);
-        } else {
-            preferences.setEmailNotifications(request.getEmailNotifications());
-            preferences.setSmsNotifications(request.getSmsNotifications());
-            preferences.setPreferredLanguage(request.getPreferredLanguage());
-            preferences.setPreferredPaymentMethod(request.getPreferredPaymentMethod());
-            preferences.setPreferredServiceType(request.getPreferredServiceType());
+        if (!address.getCustomerId().equals(customerId)) {
+            throw new RuntimeException("Address does not belong to this customer");
         }
 
-        Preferences saved = preferencesRepository.save(preferences);
+        boolean wasDefault = address.getIsDefault();
+
+        addressRepository.deleteById(addressId);
+        log.info("Address deleted successfully");
+
+        // If deleted address was default, set another address as default if exists
+        if (wasDefault) {
+            List<Address> remaining = addressRepository.findByCustomerId(customerId);
+            if (!remaining.isEmpty()) {
+                Address newDefault = remaining.get(0);
+                newDefault.setIsDefault(true);
+                addressRepository.save(newDefault);
+                log.info("Set new default address: {}", newDefault.getId());
+            }
+        }
+    }
+
+    // ==================== Preferences Management ====================
+
+    @Transactional
+    public PreferencesDto setPreferences(String customerId, PreferencesDto preferencesDto) {
+        log.info("Setting preferences for customer: {}", customerId);
+
+        CustomerPreferences prefs = customerMapper.toEntity(customerId, preferencesDto);
+        CustomerPreferences saved = preferencesRepository.save(prefs);
         log.info("Preferences saved successfully for customer: {}", customerId);
         return customerMapper.toDto(saved);
     }
 
-    public List<CustomerResponse> findAll() {
-        log.info("Fetching all customers");
-        return customerRepository.findAll().stream()
-                .map(customerMapper::toDto)
-                .collect(Collectors.toList());
+    public PreferencesDto getPreferences(String customerId) {
+        log.info("Fetching preferences for customer: {}", customerId);
+
+        CustomerPreferences prefs = preferencesRepository.findByCustomerId(customerId)
+                .orElseThrow(() -> new ResourceNotFoundException("Preferences", "customerId", customerId));
+        return customerMapper.toDto(prefs);
     }
 
-    public PreferencesResponse getPreferences(String customerId) {
-        log.info("Fetching preferences for customer: {}", customerId);
-        Preferences preferences = preferencesRepository.findByCustomerCustomerId(customerId)
-                .orElseThrow(() -> new ResourceNotFoundException("Preferences", "customerId", customerId));
-        return customerMapper.toDto(preferences);
+    // ==================== Helper Methods ====================
+
+    private boolean isFirstAddress(String customerId) {
+        return addressRepository.findByCustomerId(customerId).isEmpty();
+    }
+
+    private void unsetDefaultAddress(String customerId) {
+        addressRepository.findByCustomerIdAndIsDefaultTrue(customerId)
+                .ifPresent(address -> {
+                    address.setIsDefault(false);
+                    addressRepository.save(address);
+                });
     }
 }

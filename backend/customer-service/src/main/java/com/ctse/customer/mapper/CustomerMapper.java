@@ -1,79 +1,68 @@
 package com.ctse.customer.mapper;
-import com.ctse.customer.dto.*;
+
+import com.ctse.customer.dto.AddressDto;
+import com.ctse.customer.dto.AddressRequest;
+import com.ctse.customer.dto.PreferencesDto;
 import com.ctse.customer.model.Address;
-import com.ctse.customer.model.Customer;
-import com.ctse.customer.model.Preferences;
+import com.ctse.customer.model.CustomerPreferences;
 import org.springframework.stereotype.Component;
 
 @Component
 public class CustomerMapper {
 
-    public Customer toEntity(CustomerRequest dto, String customerId) {
-        Customer customer = new Customer();
-        customer.setCustomerId(customerId);
-        customer.setName(dto.getName());
-        customer.setEmail(dto.getEmail());
-        customer.setPhoneNumber(dto.getPhoneNumber());
-        return customer;
-    }
-
-    public CustomerResponse toDto(Customer entity) {
-        CustomerResponse response = new CustomerResponse();
-        response.setId(entity.getId());
-        response.setCustomerId(entity.getCustomerId());
-        response.setName(entity.getName());
-        response.setEmail(entity.getEmail());
-        response.setPhoneNumber(entity.getPhoneNumber());
-        response.setCreatedAt(entity.getCreatedAt());
-        response.setUpdatedAt(entity.getUpdatedAt());
-        return response;
-    }
-
-    public Address toEntity(AddressRequest dto, Customer customer) {
+    public Address toEntity(AddressRequest dto) {
         Address address = new Address();
-        address.setAddressLine(dto.getAddressLine());
+        address.setCustomerId(dto.getCustomerId());
+        address.setAddressLine1(dto.getAddressLine1());
         address.setAddressLine2(dto.getAddressLine2());
         address.setCity(dto.getCity());
         address.setState(dto.getState());
         address.setPostalCode(dto.getPostalCode());
         address.setCountry(dto.getCountry());
+        address.setPhoneNumber(dto.getPhoneNumber());
         address.setIsDefault(dto.getIsDefault());
-        address.setCustomer(customer);
+        address.setAddressType(dto.getAddressType());
         return address;
     }
 
-    public AddressResponse toDto(Address entity) {
-        AddressResponse response = new AddressResponse();
-        response.setId(entity.getId());
-        response.setAddressLine(entity.getAddressLine());
-        response.setAddressLine2(entity.getAddressLine2());
-        response.setCity(entity.getCity());
-        response.setState(entity.getState());
-        response.setPostalCode(entity.getPostalCode());
-        response.setCountry(entity.getCountry());
-        response.setIsDefault(entity.getIsDefault());
-        return response;
+    public AddressDto toDto(Address entity) {
+        AddressDto dto = new AddressDto();
+        dto.setId(entity.getId());
+        dto.setCustomerId(entity.getCustomerId());
+        dto.setAddressLine1(entity.getAddressLine1());
+        dto.setAddressLine2(entity.getAddressLine2());
+        dto.setCity(entity.getCity());
+        dto.setState(entity.getState());
+        dto.setPostalCode(entity.getPostalCode());
+        dto.setCountry(entity.getCountry());
+        dto.setPhoneNumber(entity.getPhoneNumber());
+        dto.setIsDefault(entity.getIsDefault());
+        dto.setAddressType(entity.getAddressType());
+        return dto;
     }
 
-    public Preferences toEntity(PreferencesRequest dto, Customer customer) {
-        Preferences preferences = new Preferences();
-        preferences.setEmailNotifications(dto.getEmailNotifications());
-        preferences.setSmsNotifications(dto.getSmsNotifications());
-        preferences.setPreferredLanguage(dto.getPreferredLanguage());
-        preferences.setPreferredPaymentMethod(dto.getPreferredPaymentMethod());
-        preferences.setPreferredServiceType(dto.getPreferredServiceType());
-        preferences.setCustomer(customer);
-        return preferences;
+    public CustomerPreferences toEntity(String customerId, PreferencesDto dto) {
+        CustomerPreferences prefs = new CustomerPreferences();
+        prefs.setCustomerId(customerId);
+        prefs.setPreferredLanguage(dto.getPreferredLanguage() != null ? dto.getPreferredLanguage() : "en");
+        prefs.setEmailNotifications(dto.getEmailNotifications() != null ? dto.getEmailNotifications() : true);
+        prefs.setSmsNotifications(dto.getSmsNotifications() != null ? dto.getSmsNotifications() : false);
+        prefs.setPreferredPaymentMethod(dto.getPreferredPaymentMethod());
+        prefs.setPreferredServiceType(dto.getPreferredServiceType());
+        prefs.setIsExpressPreferred(dto.getIsExpressPreferred() != null ? dto.getIsExpressPreferred() : false);
+        prefs.setIsDryCleanPreferred(dto.getIsDryCleanPreferred() != null ? dto.getIsDryCleanPreferred() : false);
+        return prefs;
     }
 
-    public PreferencesResponse toDto(Preferences entity) {
-        PreferencesResponse response = new PreferencesResponse();
-        response.setId(entity.getId());
-        response.setEmailNotifications(entity.getEmailNotifications());
-        response.setSmsNotifications(entity.getSmsNotifications());
-        response.setPreferredLanguage(entity.getPreferredLanguage());
-        response.setPreferredPaymentMethod(entity.getPreferredPaymentMethod());
-        response.setPreferredServiceType(entity.getPreferredServiceType());
-        return response;
+    public PreferencesDto toDto(CustomerPreferences entity) {
+        PreferencesDto dto = new PreferencesDto();
+        dto.setPreferredLanguage(entity.getPreferredLanguage());
+        dto.setEmailNotifications(entity.getEmailNotifications());
+        dto.setSmsNotifications(entity.getSmsNotifications());
+        dto.setPreferredPaymentMethod(entity.getPreferredPaymentMethod());
+        dto.setPreferredServiceType(entity.getPreferredServiceType());
+        dto.setIsExpressPreferred(entity.getIsExpressPreferred());
+        dto.setIsDryCleanPreferred(entity.getIsDryCleanPreferred());
+        return dto;
     }
 }

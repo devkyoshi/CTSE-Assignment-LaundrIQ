@@ -1,13 +1,22 @@
 package com.ctse.customer.dto;
 
+
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class AddressRequest {
 
-    @NotBlank(message = "Address line is required")
-    private String addressLine;
+    @NotBlank(message = "Customer ID is required")
+    private String customerId;
+
+    @NotBlank(message = "Address line 1 is required")
+    private String addressLine1;
 
     private String addressLine2;
 
@@ -23,5 +32,9 @@ public class AddressRequest {
     @NotBlank(message = "Country is required")
     private String country;
 
+    private String phoneNumber;
+
     private Boolean isDefault = false;
+
+    private String addressType; // HOME, WORK, OTHER
 }
