@@ -9,7 +9,7 @@ export interface AuthUser {
   id: string;
   username: string;
   email: string;
-  roles: string;
+  roles: string[];
   active: boolean;
   createdAt: string;
 }

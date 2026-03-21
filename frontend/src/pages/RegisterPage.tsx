@@ -27,7 +27,7 @@ export default function RegisterPage() {
     try {
       const res = await authService.register(username, email, password);
       if (res.success) {
-        login(res.data.token, res.data.userId, res.data.username);
+        login(res.data);
         toast.success(res.message || "Registered successfully");
         navigate("/");
       } else {

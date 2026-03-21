@@ -11,12 +11,10 @@ import DashboardPage from "@/pages/DashboardPage";
 import OrdersPage from "@/pages/OrdersPage";
 import OrderDetailPage from "@/pages/OrderDetailPage";
 import CreateOrderPage from "@/pages/CreateOrderPage";
-import MyOrdersPage from "@/pages/MyOrdersPage";
 import PaymentsPage from "@/pages/PaymentsPage";
 import MakePaymentPage from "@/pages/MakePaymentPage";
 import PaymentDetailPage from "@/pages/PaymentDetailPage";
-import PricingPage from "@/pages/PricingPage";
-import ManagePricingPage from "@/pages/ManagePricingPage";
+import CustomerProfilePage from "@/pages/CustomerProfilePage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -36,12 +34,12 @@ const App = () => (
               <Route path="/orders" element={<OrdersPage />} />
               <Route path="/orders/create" element={<CreateOrderPage />} />
               <Route path="/orders/:id" element={<OrderDetailPage />} />
-              <Route path="/my-orders" element={<MyOrdersPage />} />
+              <Route path="/profile" element={<CustomerProfilePage />} />
+              <Route path="/addresses" element={<CustomerProfilePage />} />
+              <Route path="/preferences" element={<CustomerProfilePage />} />
               <Route path="/payments" element={<PaymentsPage />} />
               <Route path="/payments/create" element={<MakePaymentPage />} />
               <Route path="/payments/:id" element={<PaymentDetailPage />} />
-              <Route path="/pricing" element={<PricingPage />} />
-              <Route path="/pricing/manage" element={<ManagePricingPage />} />
             </Route>
             <Route path="*" element={<NotFound />} />
           </Routes>

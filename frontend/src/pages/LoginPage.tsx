@@ -26,7 +26,7 @@ export default function LoginPage() {
     try {
       const res = await authService.login(username, password);
       if (res.success) {
-        login(res.data.token, res.data.userId, res.data.username);
+        login(res.data);
         toast.success(res.message || "Logged in successfully");
         navigate("/");
       } else {
