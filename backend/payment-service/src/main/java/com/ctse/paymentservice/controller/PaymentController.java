@@ -1,7 +1,11 @@
 package com.ctse.paymentservice.controller;
 
-import com.ctse.paymentservice.model.Payment;
+import com.ctse.common.response.ApiResponse;
+import com.ctse.paymentservice.dto.ConfirmPaymentRequest;
+import com.ctse.paymentservice.dto.CreatePaymentRequest;
+import com.ctse.paymentservice.dto.PaymentResponse;
 import com.ctse.paymentservice.service.PaymentService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,50 +20,43 @@ public class PaymentController {
 
     private final PaymentService paymentService;
 
+    @PostMapping
+    public ResponseEntity<ApiResponse<PaymentResponse>> createPayment(
+            @Valid @RequestBody CreatePaymentRequest request) {
+        PaymentResponse payment = paymentService.createPayment(request);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.success("Payment created successfully", payment));
+    }
+
+    @PostMapping("/confirm")
+    public ResponseEntity<ApiResponse<PaymentResponse>> confirmPayment(
+            @Valid @RequestBody ConfirmPaymentRequest request) {
+        PaymentResponse payment = paymentService.confirmPayment(request);
+        return ResponseEntity.ok(ApiResponse.success("Payment confirmed", payment));
+    }
+
     @GetMapping
-    public ResponseEntity<List<Payment>> getAllPayments() {
-        return ResponseEntity.ok(paymentService.findAll());
+    public ResponseEntity<ApiResponse<List<PaymentResponse>>> getAllPayments() {
+        List<PaymentResponse> payments = paymentService.findAll();
+        return ResponseEntity.ok(ApiResponse.success("Payments retrieved", payments));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Payment> getPaymentById(@PathVariable Long id) {
-        return paymentService.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentById(@PathVariable Long id) {
+        PaymentResponse payment = paymentService.findById(id);
+        return ResponseEntity.ok(ApiResponse.success("Payment retrieved", payment));
     }
 
     @GetMapping("/order/{orderId}")
-    public ResponseEntity<Payment> getPaymentByOrderId(@PathVariable Long orderId) {
-        return paymentService.findByOrderId(orderId)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<ApiResponse<PaymentResponse>> getPaymentByOrderId(@PathVariable Long orderId) {
+        PaymentResponse payment = paymentService.findByOrderId(orderId);
+        return ResponseEntity.ok(ApiResponse.success("Payment retrieved", payment));
     }
 
-    @PostMapping
-    public ResponseEntity<Payment> createPayment(@RequestBody Payment payment) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(paymentService.save(payment));
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<Payment> updatePayment(@PathVariable Long id, @RequestBody Payment payment) {
-        return paymentService.update(id, payment)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PatchMapping("/{id}/status")
-    public ResponseEntity<Payment> updatePaymentStatus(@PathVariable Long id,
-            @RequestParam String status) {
-        return paymentService.updateStatus(id, status)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletePayment(@PathVariable Long id) {
-        if (paymentService.deleteById(id)) {
-            return ResponseEntity.noContent().build();
-        }
-        return ResponseEntity.notFound().build();
+    @GetMapping("/customer/{customerId}")
+    public ResponseEntity<ApiResponse<List<PaymentResponse>>> getPaymentsByCustomer(
+            @PathVariable String customerId) {
+        List<PaymentResponse> payments = paymentService.findByCustomerId(customerId);
+        return ResponseEntity.ok(ApiResponse.success("Payments retrieved", payments));
     }
 }
