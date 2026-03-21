@@ -1,10 +1,8 @@
 package com.ctse.customer.Controller;
 
 
-import com.ctse.customer.dto.CustomerRequest;
-import com.ctse.customer.dto.CustomerResponse;
-import com.ctse.customer.dto.PreferencesRequest;
-import com.ctse.customer.dto.PreferencesResponse;
+import com.ctse.common.response.ApiResponse;
+import com.ctse.customer.dto.*;
 import com.ctse.customer.service.CustomerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -84,7 +82,6 @@ public class CustomerController {
         return ResponseEntity.ok(ApiResponse.success("Address deleted successfully"));
     }
 
-    // Preferences Management
     @PutMapping("/{customerId}/preferences")
     public ResponseEntity<ApiResponse<PreferencesResponse>> setPreferences(
             @PathVariable String customerId,
@@ -99,5 +96,19 @@ public class CustomerController {
         log.info("Received request to get preferences for customer: {}", customerId);
         PreferencesResponse preferences = customerService.getPreferences(customerId);
         return ResponseEntity.ok(ApiResponse.success("Preferences retrieved successfully", preferences));
+    }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<List<CustomerResponse>>> listCustomers() {
+        log.info("Received request to list all customers");
+        List<CustomerResponse> customers = customerService.findAll();
+        return ResponseEntity.ok(ApiResponse.success("Customers retrieved successfully", customers));
+    }
+
+    @GetMapping("/{customerId}")
+    public ResponseEntity<ApiResponse<CustomerResponse>> getCustomerById(@PathVariable String customerId) {
+        log.info("Received request to get customer by id: {}", customerId);
+        CustomerResponse customer = customerService.findByCustomerId(customerId);
+        return ResponseEntity.ok(ApiResponse.success("Customer retrieved successfully", customer));
     }
 }

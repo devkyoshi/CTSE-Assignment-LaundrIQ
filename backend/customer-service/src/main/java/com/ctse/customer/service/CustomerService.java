@@ -1,5 +1,6 @@
 package com.ctse.customer.service;
 
+import com.ctse.common.exception.ResourceNotFoundException;
 import com.ctse.customer.dto.*;
 import com.ctse.customer.mapper.CustomerMapper;
 import com.ctse.customer.model.Address;
@@ -158,6 +159,13 @@ public class CustomerService {
         Preferences saved = preferencesRepository.save(preferences);
         log.info("Preferences saved successfully for customer: {}", customerId);
         return customerMapper.toDto(saved);
+    }
+
+    public List<CustomerResponse> findAll() {
+        log.info("Fetching all customers");
+        return customerRepository.findAll().stream()
+                .map(customerMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     public PreferencesResponse getPreferences(String customerId) {
