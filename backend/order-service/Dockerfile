@@ -6,10 +6,13 @@ WORKDIR /app
 COPY pom.xml .
 
 # Copy ALL module POMs so Maven can resolve the multi-module structure
-COPY item-service/pom.xml    item-service/pom.xml
+COPY auth-service/pom.xml    auth-service/pom.xml
+COPY common/pom.xml          common/pom.xml
+COPY customer-service/pom.xml customer-service/pom.xml
+COPY gateway/pom.xml         gateway/pom.xml
+COPY grpc-lib/pom.xml        grpc-lib/pom.xml
 COPY order-service/pom.xml   order-service/pom.xml
 COPY payment-service/pom.xml payment-service/pom.xml
-COPY gateway/pom.xml         gateway/pom.xml
 
 # Copy only this module's source
 COPY order-service/src order-service/src

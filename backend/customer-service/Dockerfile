@@ -6,19 +6,22 @@ WORKDIR /app
 COPY pom.xml .
 
 # Copy ALL module POMs so Maven can resolve the multi-module structure
-COPY item-service/pom.xml    item-service/pom.xml
+COPY auth-service/pom.xml    auth-service/pom.xml
+COPY common/pom.xml          common/pom.xml
+COPY customer-service/pom.xml customer-service/pom.xml
+COPY gateway/pom.xml         gateway/pom.xml
+COPY grpc-lib/pom.xml        grpc-lib/pom.xml
 COPY order-service/pom.xml   order-service/pom.xml
 COPY payment-service/pom.xml payment-service/pom.xml
-COPY gateway/pom.xml         gateway/pom.xml
 
 # Copy only this module's source
-COPY order-service/src order-service/src
+COPY customer-service/src customer-service/src
 
 # Install parent POM (resolves module graph)
 RUN mvn install -N -DskipTests --no-transfer-progress
 
-# Build order-service only
-RUN mvn package -pl order-service -DskipTests --no-transfer-progress
+# Build customer-service only
+RUN mvn package -pl customer-service -DskipTests --no-transfer-progress
 
 # ---- Runtime Stage ----
 FROM eclipse-temurin:21-jre-alpine
@@ -27,7 +30,7 @@ WORKDIR /app
 RUN addgroup -S spring && adduser -S spring -G spring
 USER spring:spring
 
-COPY --from=builder /app/order-service/target/order-service-*.jar app.jar
+COPY --from=builder /app/customer-service/target/customer-service-*.jar app.jar
 
-EXPOSE 8082
+EXPOSE 8086
 ENTRYPOINT ["java", "-jar", "app.jar"]
