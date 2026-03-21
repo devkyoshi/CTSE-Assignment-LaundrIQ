@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockOrderService, Order } from "@/services/mockOrderService";
+import { orderService, Order } from "@/services/orderService";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!user?.id) return;
-    mockOrderService.getOrdersByCustomer(user.id)
+    orderService.getOrdersByCustomer(user.id)
       .then((data) => setOrders(data))
       .catch(() => toast.error("Failed to load orders"))
       .finally(() => setLoading(false));

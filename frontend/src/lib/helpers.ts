@@ -32,7 +32,7 @@ export function getNextOrderStatus(current: string): string | null {
 }
 
 export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(amount);
+  return new Intl.NumberFormat("en-LK", { style: "currency", currency: "LKR", minimumFractionDigits: 2 }).format(amount);
 }
 
 export function formatDate(dateStr: string): string {

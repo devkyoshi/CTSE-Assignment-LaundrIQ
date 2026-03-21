@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { mockPaymentService } from "@/services/mockPaymentService";
-import { mockOrderService, Order } from "@/services/mockOrderService";
+import { orderService, Order } from "@/services/orderService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,7 +30,7 @@ export default function MakePaymentPage() {
       setLoading(false);
       return;
     }
-    mockOrderService.getOrderById(orderId)
+    orderService.getOrderById(orderId)
       .then(setOrder)
       .catch(() => toast.error("Failed to fetch order details"))
       .finally(() => setLoading(false));
@@ -56,7 +56,7 @@ export default function MakePaymentPage() {
 
       if (processed.status === "COMPLETED" || paymentMethod === 'CASH_ON_DELIVERY') {
         if (order.status === "PENDING") {
-           await mockOrderService.updateOrderStatus(orderId, "PICKED_UP"); // mock advancing status
+           await orderService.updateOrderStatus(orderId, "PICKED_UP"); // mock advancing status
         }
         toast.success("Payment submitted successfully");
         navigate(`/payments/${processed.id}`);

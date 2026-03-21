@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { mockPaymentService, Payment } from "@/services/mockPaymentService";
-import { mockOrderService } from "@/services/mockOrderService";
+import { orderService } from "@/services/orderService";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
@@ -20,7 +20,7 @@ export default function PaymentsPage() {
     if (!user?.id) return;
     
     // Fetch user's orders to filter payments
-    mockOrderService.getOrdersByCustomer(user.id).then(orders => {
+    orderService.getOrdersByCustomer(user.id).then(orders => {
       const orderIds = new Set(orders.map(o => o.id));
       return mockPaymentService.getAllPayments().then(allPay => {
         return allPay.filter(p => orderIds.has(p.orderId));

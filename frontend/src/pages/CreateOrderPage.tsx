@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockOrderService, OrderItem } from "@/services/mockOrderService";
+import { orderService, OrderItem } from "@/services/orderService";
 import { mockPaymentService } from "@/services/mockPaymentService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,16 +9,18 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
 
-const SERVICE_TYPES = ['STANDARD', 'EXPRESS', 'DRY_CLEANING'];
-const CATALOGUE = [
-  { name: 'Shirts', price: 2.50 },
-  { name: 'Pants', price: 3.00 },
-  { name: 'Suits', price: 8.50 },
-  { name: 'Bed Sheets', price: 5.00 },
+const SERVICE_TYPES: ('STANDARD' | 'PREMIUM')[] = ['STANDARD', 'PREMIUM'];
+
+const PREMIUM_CATALOGUE = [
+  { name: 'Coat / Heavy Jacket', price: 15.00 },
+  { name: 'Party Dress', price: 25.00 },
+  { name: 'Suit (2-Piece)', price: 20.00 },
+  { name: 'Wedding Dress', price: 60.00 },
 ];
 
 export default function CreateOrderPage() {
@@ -27,8 +29,12 @@ export default function CreateOrderPage() {
   const [step, setStep] = useState(1);
 
   // Step 1: Items & Service
-  const [serviceType, setServiceType] = useState("STANDARD");
+  const [serviceType, setServiceType] = useState<'STANDARD' | 'PREMIUM'>("STANDARD");
+  const [weight, setWeight] = useState<number>(3); // 3 kg default for standard
   const [cartItems, setCartItems] = useState<Omit<OrderItem, 'id'>[]>([]);
+  const [isExpress, setIsExpress] = useState(false);
+  const [isDryClean, setIsDryClean] = useState(false);
+  
   const [calculatedPrice, setCalculatedPrice] = useState<number>(0);
 
   // Step 2: Slots
@@ -42,12 +48,13 @@ export default function CreateOrderPage() {
   const [processing, setProcessing] = useState(false);
 
   useEffect(() => {
-    if (cartItems.length > 0) {
-      mockOrderService.calculatePrice(cartItems, serviceType).then(setCalculatedPrice);
-    } else {
-      setCalculatedPrice(0);
-    }
-  }, [cartItems, serviceType]);
+    orderService.calculatePrice(serviceType, {
+      weight,
+      items: cartItems,
+      isExpress,
+      isDryClean
+    }).then(setCalculatedPrice);
+  }, [cartItems, serviceType, weight, isExpress, isDryClean]);
 
   const addToCart = (product: { name: string; price: number }) => {
     setCartItems(prev => {
@@ -68,11 +75,16 @@ export default function CreateOrderPage() {
     setProcessing(true);
     try {
       // 1. Create order
-      const order = await mockOrderService.createOrder(user.id, cartItems, serviceType);
+      const order = await orderService.createOrder(user.id, serviceType, {
+        weight,
+        items: cartItems,
+        isExpress,
+        isDryClean
+      });
       
       // 2. Assign slots
-      await mockOrderService.assignPickupSlot(order.id, { date: pickupDate, time: pickupTime });
-      await mockOrderService.assignDeliverySlot(order.id, { date: deliveryDate, time: deliveryTime });
+      await orderService.assignPickupSlot(order.id, { date: pickupDate, time: pickupTime });
+      await orderService.assignDeliverySlot(order.id, { date: deliveryDate, time: deliveryTime });
 
       // 3. Mock Payment processing
       const initPay = await mockPaymentService.initiatePayment(order.id, calculatedPrice);
@@ -82,7 +94,7 @@ export default function CreateOrderPage() {
       });
 
       if (processed.status === "COMPLETED") {
-        await mockOrderService.updateOrderStatus(order.id, "PICKED_UP"); // mock advancing status
+        await orderService.updateOrderStatus(order.id, "PICKED_UP"); // mock advancing status
         toast.success("Order placed and payment successful!");
         navigate(`/orders`);
       } else {
@@ -121,56 +133,108 @@ export default function CreateOrderPage() {
                 <Separator />
               </div>
 
-              <div className="space-y-3 max-w-sm">
-                <Label className="text-base">Service Level</Label>
-                <Select value={serviceType} onValueChange={setServiceType}>
-                  <SelectTrigger className="h-12"><SelectValue placeholder="Select service" /></SelectTrigger>
-                  <SelectContent>
-                    {SERVICE_TYPES.map(s => <SelectItem key={s} value={s}>{s.replace("_", " ")}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-base">Service Level</Label>
+                    <p className="text-sm text-muted-foreground mt-1">Choose how you want us to price and process your laundry.</p>
+                  </div>
+                  <Select value={serviceType} onValueChange={(v: 'STANDARD'|'PREMIUM') => setServiceType(v)}>
+                    <SelectTrigger className="h-12"><SelectValue placeholder="Select service" /></SelectTrigger>
+                    <SelectContent>
+                      {SERVICE_TYPES.map(s => <SelectItem key={s} value={s}>{s === 'STANDARD' ? 'Standard Laundry (Per Kg)' : 'Premium Items (Per Item)'}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-3">
+                  <div>
+                    <Label className="text-base">Global Add-ons</Label>
+                    <p className="text-sm text-muted-foreground mt-1">Select any additional services for your entire order.</p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="flex items-center space-x-2 border p-3 rounded-lg bg-slate-50 border-border cursor-pointer hover:bg-slate-100 transition-colors">
+                      <Checkbox id="express" checked={isExpress} onCheckedChange={(checked) => setIsExpress(checked as boolean)} />
+                      <Label htmlFor="express" className="cursor-pointer font-medium text-sm">Express (+50%)</Label>
+                    </div>
+                    <div className="flex items-center space-x-2 border p-3 rounded-lg bg-slate-50 border-border cursor-pointer hover:bg-slate-100 transition-colors">
+                      <Checkbox id="dryclean" checked={isDryClean} onCheckedChange={(checked) => setIsDryClean(checked as boolean)} />
+                      <Label htmlFor="dryclean" className="cursor-pointer font-medium text-sm">Dry Clean (+$15)</Label>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 pt-4">
                 <div className="space-y-4">
-                  <Label className="text-base">Available Items</Label>
-                  <div className="grid gap-3">
-                    {CATALOGUE.map(c => (
-                      <div key={c.name} className="flex items-center justify-between p-4 border border-border rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                        <div>
-                          <p className="font-semibold text-foreground">{c.name}</p>
-                          <p className="text-sm text-primary font-medium">{formatCurrency(c.price)}</p>
-                        </div>
-                        <Button variant="outline" size="sm" onClick={() => addToCart(c)} className="rounded-full px-6">Add to Cart</Button>
+                  {serviceType === 'STANDARD' ? (
+                    <div className="p-6 bg-slate-50 rounded-xl border border-border space-y-4">
+                      <Label className="text-base block">Estimated Weight (Kg)</Label>
+                      <div className="flex items-center gap-4">
+                        <Input type="number" min="1" max="50" className="h-14 text-2xl font-bold w-32 px-4 shadow-sm" value={weight} onChange={(e) => setWeight(Number(e.target.value))} />
+                        <span className="text-muted-foreground font-medium">kg @ $12.50/kg</span>
                       </div>
-                    ))}
-                  </div>
+                      <p className="text-sm text-muted-foreground">This is an estimate. Final weight is subject to measurement upon pickup.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <Label className="text-base">Premium Catalogue</Label>
+                      <div className="grid gap-3">
+                        {PREMIUM_CATALOGUE.map(c => (
+                          <div key={c.name} className="flex items-center justify-between p-4 border border-border rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
+                            <div>
+                              <p className="font-semibold text-foreground">{c.name}</p>
+                              <p className="text-sm text-primary font-medium">{formatCurrency(c.price)}</p>
+                            </div>
+                            <Button variant="outline" size="sm" onClick={() => addToCart(c)} className="rounded-full px-6">Add to Cart</Button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
                 
                 <div className="space-y-4 lg:border-l lg:pl-10">
-                  <Label className="text-base">Your Cart</Label>
+                  <Label className="text-base">Order Summary</Label>
                   <div className="min-h-[200px] flex flex-col pt-2">
-                    {cartItems.length === 0 ? (
-                      <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50 rounded-xl border border-dashed border-border/60">
-                        <p className="text-muted-foreground">Cart is empty.<br/>Add items from the catalogue.</p>
+                    {serviceType === 'STANDARD' ? (
+                      <div className="flex-1 space-y-3">
+                        <div className="flex justify-between items-center p-4 rounded-xl bg-white border border-border shadow-sm">
+                          <span className="font-medium">Standard Laundry <span className="text-muted-foreground ml-2">({weight} Kg)</span></span>
+                          <span className="font-medium tabular-nums">{formatCurrency(weight * 12.50)}</span>
+                        </div>
                       </div>
                     ) : (
-                      <div className="space-y-3 flex-1">
-                        {cartItems.map(c => (
-                          <div key={c.name} className="flex justify-between items-center p-3 rounded-xl bg-white border border-border">
-                            <span className="font-medium text-sm"><span className="text-primary mr-2">{c.quantity}x</span>{c.name}</span>
-                            <Button variant="ghost" size="sm" onClick={() => removeFromCart(c.name)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 rounded-full">
-                              ✕
-                            </Button>
-                          </div>
-                        ))}
+                      cartItems.length === 0 ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-center p-8 bg-slate-50 rounded-xl border border-dashed border-border/60">
+                          <p className="text-muted-foreground">Cart is empty.<br/>Add items from the catalogue.</p>
+                        </div>
+                      ) : (
+                        <div className="space-y-3 flex-1">
+                          {cartItems.map(c => (
+                            <div key={c.name} className="flex justify-between items-center p-3 rounded-xl bg-white border border-border shadow-sm">
+                              <span className="font-medium text-sm"><span className="text-primary mr-2 font-bold">{c.quantity}x</span>{c.name}</span>
+                              <div className="flex items-center gap-3">
+                                <span className="font-medium tabular-nums text-sm">{formatCurrency(c.quantity * c.unitPrice)}</span>
+                                <Button variant="ghost" size="sm" onClick={() => removeFromCart(c.name)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8 p-0 rounded-full">✕</Button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    )}
+
+                    {(isExpress || isDryClean) && (
+                      <div className="mt-4 pt-4 border-t space-y-2">
+                        {isDryClean && <div className="flex justify-between text-sm"><span className="text-muted-foreground font-medium flex items-center gap-1"><span className="text-blue-500 rounded-full h-1.5 w-1.5 bg-blue-500 block relative top-px"></span>Dry Cleaning Fee</span><span className="tabular-nums font-medium text-foreground">+$15.00</span></div>}
+                        {isExpress && <div className="flex justify-between text-sm"><span className="text-muted-foreground font-medium flex items-center gap-1"><span className="text-orange-500 rounded-full h-1.5 w-1.5 bg-orange-500 block relative top-px"></span>Express Surcharge</span><span className="tabular-nums font-medium text-foreground">+50%</span></div>}
                       </div>
                     )}
 
                     <div className="pt-6 mt-auto">
                       <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-border">
                         <span className="font-semibold text-muted-foreground">Subtotal</span>
-                        <p className="text-2xl font-bold text-foreground tabular-nums">{formatCurrency(calculatedPrice)}</p>
+                        <p className="text-2xl font-bold text-foreground tabular-nums tracking-tight">{formatCurrency(calculatedPrice)}</p>
                       </div>
                     </div>
                   </div>
@@ -178,7 +242,7 @@ export default function CreateOrderPage() {
               </div>
 
               <div className="flex justify-end pt-8">
-                <Button size="lg" className="px-10" onClick={() => setStep(2)} disabled={cartItems.length === 0}>Next Step &rarr;</Button>
+                <Button size="lg" className="px-10" onClick={() => setStep(2)} disabled={serviceType === 'PREMIUM' && cartItems.length === 0}>Next Step &rarr;</Button>
               </div>
             </div>
           )}
@@ -193,10 +257,11 @@ export default function CreateOrderPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <div className="space-y-6 bg-slate-50 p-6 rounded-xl border border-border">
                   <div>
-                    <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
                       <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center shrink-0">1</div>
                       Pickup
                     </h3>
+                    <p className="text-sm text-muted-foreground mt-1 mb-5">Select a convenient date and time for our driver to collect your laundry.</p>
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label>Date</Label>
@@ -212,10 +277,11 @@ export default function CreateOrderPage() {
 
                 <div className="space-y-6 bg-slate-50 p-6 rounded-xl border border-border">
                   <div>
-                    <h3 className="font-semibold text-lg flex items-center gap-2 mb-4">
+                    <h3 className="font-semibold text-lg flex items-center gap-2">
                       <div className="h-8 w-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">2</div>
                       Delivery
                     </h3>
+                    <p className="text-sm text-muted-foreground mt-1 mb-5">Choose when you'd like your freshly cleaned items returned to you.</p>
                     <div className="space-y-4">
                       <div className="space-y-2">
                         <Label>Date</Label>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { mockOrderService, Order } from "@/services/mockOrderService";
+import { orderService, Order } from "@/services/orderService";
 import { ORDER_STATUSES, CANCELLED_STATUS } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -25,7 +25,7 @@ export default function OrderDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    mockOrderService.getOrderById(id)
+    orderService.getOrderById(id)
       .then(setOrder)
       .catch(() => toast.error("Failed to load order"))
       .finally(() => setLoading(false));
@@ -39,7 +39,7 @@ export default function OrderDetailPage() {
     const nextStatus = STATUS_PROGRESS[currentIdx + 1];
     setUpdating(true);
     try {
-      const updated = await mockOrderService.updateOrderStatus(order.id, nextStatus as any);
+      const updated = await orderService.updateOrderStatus(order.id, nextStatus as any);
       setOrder(updated);
       toast.success(`Status updated to ${nextStatus.replace("_", " ")}`);
     } catch { 
@@ -53,7 +53,7 @@ export default function OrderDetailPage() {
     if (!order) return;
     setUpdating(true);
     try {
-      const updated = await mockOrderService.cancelOrder(order.id);
+      const updated = await orderService.cancelOrder(order.id);
       setOrder(updated);
       toast.success("Order cancelled");
     } catch { 
@@ -196,15 +196,44 @@ export default function OrderDetailPage() {
             </CardHeader>
             <CardContent className="p-0">
               <div className="divide-y divide-gray-100">
-                {order.items.map((item, i) => (
-                  <div key={i} className="flex justify-between items-center p-6">
+                {order.serviceType === 'STANDARD' ? (
+                  <div className="flex justify-between items-center p-6 bg-white">
                     <div className="flex flex-col">
-                      <span className="font-semibold text-foreground text-lg">{item.name}</span>
-                      <span className="text-sm text-muted-foreground mt-1">Qty: {item.quantity} × {formatCurrency(item.unitPrice)}</span>
+                      <span className="font-semibold text-foreground text-lg">Standard Laundry</span>
+                      <span className="text-sm text-muted-foreground mt-1">Weight: {order.weight || 0} Kg @ $12.50/kg</span>
                     </div>
-                    <span className="font-semibold tabular-nums text-foreground">{formatCurrency(item.quantity * item.unitPrice)}</span>
+                    <span className="font-semibold tabular-nums text-foreground">{formatCurrency((order.weight || 0) * 12.50)}</span>
                   </div>
-                ))}
+                ) : (
+                  order.items?.map((item, i) => (
+                    <div key={i} className="flex justify-between items-center p-6 bg-white">
+                      <div className="flex flex-col">
+                        <span className="font-semibold text-foreground text-lg">{item.name}</span>
+                        <span className="text-sm text-muted-foreground mt-1">Qty: {item.quantity} × {formatCurrency(item.unitPrice)}</span>
+                      </div>
+                      <span className="font-semibold tabular-nums text-foreground">{formatCurrency(item.quantity * item.unitPrice)}</span>
+                    </div>
+                  ))
+                )}
+                
+                {/* Add-ons line items */}
+                {(order.isExpress || order.isDryClean) && (
+                  <div className="p-6 bg-slate-50/50 space-y-3">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-4">Add-ons Selected</h4>
+                    {order.isDryClean && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-slate-600">Dry Cleaning</span>
+                        <span className="text-sm font-semibold tabular-nums text-foreground">+$15.00</span>
+                      </div>
+                    )}
+                    {order.isExpress && (
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium text-slate-600">Express Delivery (+50%)</span>
+                        <span className="text-sm font-semibold tabular-nums text-foreground">Surcharge Applied</span>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="bg-slate-50 p-6 flex justify-between items-end border-t border-border">
                 <div className="flex flex-col">

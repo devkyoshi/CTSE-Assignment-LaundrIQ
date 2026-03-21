@@ -1,35 +1,126 @@
 import api from "@/lib/api";
-import type { Order } from "@/types";
 
-// Order endpoints may or may not use ApiResponse envelope
+export type OrderStatus = 'PENDING' | 'PICKED_UP' | 'IN_CLEANING' | 'OUT_FOR_DELIVERY' | 'DELIVERED' | 'CANCELLED';
+
+export interface OrderItem {
+  id?: string;
+  name: string;
+  quantity: number;
+  unitPrice: number;
+}
+
+export interface TimeSlot {
+  date: string;
+  time: string;
+}
+
+export interface Order {
+  id: string;
+  customerId: string;
+  status: OrderStatus;
+  serviceType: 'STANDARD' | 'PREMIUM';
+  weight?: number; // Kg for STANDARD
+  items: OrderItem[]; // for PREMIUM
+  isExpress: boolean;
+  isDryClean: boolean;
+  totalPrice: number;
+  pickupSlot?: TimeSlot;
+  deliverySlot?: TimeSlot;
+  createdAt: string;
+  updatedAt?: string;
+}
+
 const unwrap = (res: any) => res.data?.data ?? res.data;
 
-export const orderService = {
-  getAll: async (): Promise<Order[]> => {
-    const res = await api.get("/api/orders");
+class OrderService {
+  async calculatePrice(
+    serviceType: 'STANDARD' | 'PREMIUM',
+    options: { weight?: number; items?: Omit<OrderItem, 'id'>[]; isExpress: boolean; isDryClean: boolean }
+  ): Promise<number> {
+    let basePrice = 0;
+    if (serviceType === 'STANDARD') {
+      basePrice = (options.weight || 0) * 12.50;
+    } else {
+      basePrice = (options.items || []).reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
+    }
+    
+    if (options.isDryClean) basePrice += 15.00;
+    if (options.isExpress) basePrice *= 1.5;
+
+    return Number(basePrice.toFixed(2));
+  }
+
+  async createOrder(
+    customerId: string, 
+    serviceType: 'STANDARD' | 'PREMIUM',
+    options: { weight?: number; items?: Omit<OrderItem, 'id'>[]; isExpress: boolean; isDryClean: boolean; pickupSlot?: TimeSlot; deliverySlot?: TimeSlot }
+  ): Promise<Order> {
+    const totalPrice = await this.calculatePrice(serviceType, options);
+    
+    const payload = {
+      customerId,
+      serviceType,
+      weight: options.weight,
+      items: options.items,
+      isExpress: options.isExpress,
+      isDryClean: options.isDryClean,
+      pickupSlot: options.pickupSlot,
+      deliverySlot: options.deliverySlot,
+      totalPrice
+    };
+
+    const res = await api.post("/api/orders", payload);
     return unwrap(res);
-  },
-  getById: async (id: number): Promise<Order> => {
-    const res = await api.get(`/api/orders/${id}`);
+  }
+
+  async getOrderById(orderId: string | number): Promise<Order | null> {
+    const res = await api.get(`/api/orders/${orderId}`);
     return unwrap(res);
-  },
-  getByCustomer: async (customerId: string): Promise<Order[]> => {
+  }
+
+  async getOrdersByCustomer(customerId: string): Promise<Order[]> {
     const res = await api.get(`/api/orders/customer/${customerId}`);
     return unwrap(res);
-  },
-  create: async (order: Omit<Order, "id" | "createdAt">): Promise<Order> => {
-    const res = await api.post("/api/orders", order);
+  }
+
+  async getAllOrders(): Promise<Order[]> {
+    const res = await api.get("/api/orders");
     return unwrap(res);
-  },
-  update: async (id: number, order: Partial<Order>): Promise<Order> => {
-    const res = await api.put(`/api/orders/${id}`, order);
+  }
+
+  async assignPickupSlot(orderId: string | number, timeSlot: TimeSlot): Promise<Order> {
+    const order = await this.getOrderById(orderId);
+    if (!order) throw new Error("Order not found");
+    // Use PUT internally (simulated via patch or full update if needed)
+    // For simplicity, we assume we just do a full update since our backend expects the whole object
+    const updatePayload = { ...order, pickupSlot: timeSlot };
+    const res = await api.put(`/api/orders/${orderId}`, updatePayload);
     return unwrap(res);
-  },
-  updateStatus: async (id: number, status: string): Promise<Order> => {
-    const res = await api.patch(`/api/orders/${id}/status?status=${status}`);
+  }
+
+  async assignDeliverySlot(orderId: string | number, timeSlot: TimeSlot): Promise<Order> {
+    const order = await this.getOrderById(orderId);
+    if (!order) throw new Error("Order not found");
+    const updatePayload = { ...order, deliverySlot: timeSlot };
+    const res = await api.put(`/api/orders/${orderId}`, updatePayload);
     return unwrap(res);
-  },
-  delete: async (id: number): Promise<void> => {
-    await api.delete(`/api/orders/${id}`);
-  },
-};
+  }
+
+  async updateOrderStatus(orderId: string | number, status: OrderStatus): Promise<Order> {
+    const res = await api.patch(`/api/orders/${orderId}/status`, { status });
+    return unwrap(res);
+  }
+
+  async cancelOrder(orderId: string | number): Promise<Order> {
+    const res = await api.patch(`/api/orders/${orderId}/status`, { status: 'CANCELLED' });
+    return unwrap(res);
+  }
+
+  // Lifecycle helpers
+  async markPickedUp(orderId: string | number) { return this.updateOrderStatus(orderId, 'PICKED_UP'); }
+  async markInCleaning(orderId: string | number) { return this.updateOrderStatus(orderId, 'IN_CLEANING'); }
+  async markOutForDelivery(orderId: string | number) { return this.updateOrderStatus(orderId, 'OUT_FOR_DELIVERY'); }
+  async markDelivered(orderId: string | number) { return this.updateOrderStatus(orderId, 'DELIVERED'); }
+}
+
+export const orderService = new OrderService();
