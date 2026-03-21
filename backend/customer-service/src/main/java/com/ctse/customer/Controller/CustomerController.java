@@ -1,13 +1,11 @@
 package com.ctse.customer.Controller;
 
-import com.ctse.common.response.ApiResponse;
-import com.ctse.customerservice.dto.AddressRequest;
-import com.ctse.customerservice.dto.AddressResponse;
-import com.ctse.customerservice.dto.CustomerRequest;
-import com.ctse.customerservice.dto.CustomerResponse;
-import com.ctse.customerservice.dto.PreferencesRequest;
-import com.ctse.customerservice.dto.PreferencesResponse;
-import com.ctse.customerservice.service.CustomerService;
+
+import com.ctse.customer.dto.CustomerRequest;
+import com.ctse.customer.dto.CustomerResponse;
+import com.ctse.customer.dto.PreferencesRequest;
+import com.ctse.customer.dto.PreferencesResponse;
+import com.ctse.customer.service.CustomerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
