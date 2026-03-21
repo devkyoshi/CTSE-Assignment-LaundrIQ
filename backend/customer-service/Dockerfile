@@ -14,14 +14,15 @@ COPY grpc-lib/pom.xml        grpc-lib/pom.xml
 COPY order-service/pom.xml   order-service/pom.xml
 COPY payment-service/pom.xml payment-service/pom.xml
 
-# Copy only this module's source
+# Copy this module's source and its dependencies
 COPY customer-service/src customer-service/src
+COPY common/src common/src
 
 # Install parent POM (resolves module graph)
 RUN mvn install -N -DskipTests --no-transfer-progress
 
-# Build customer-service only
-RUN mvn package -pl customer-service -DskipTests --no-transfer-progress
+# Build customer-service and its dependencies
+RUN mvn package -pl customer-service -am -DskipTests --no-transfer-progress
 
 # ---- Runtime Stage ----
 FROM eclipse-temurin:21-jre-alpine
