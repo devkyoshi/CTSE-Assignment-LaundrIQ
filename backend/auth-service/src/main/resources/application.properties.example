@@ -21,3 +21,8 @@ jwt.expiration-ms=86400000
 # gRPC server port
 grpc.server.port=9094
 grpc.server.address=0.0.0.0
+
+# Default Admin User
+admin.username=admin
+admin.email=admin@mail.com
+admin.password=admin@1234

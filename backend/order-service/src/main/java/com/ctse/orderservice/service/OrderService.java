@@ -6,6 +6,7 @@ import com.ctse.orderservice.dto.OrderResponse;
 import com.ctse.orderservice.dto.UpdateOrderStatusRequest;
 import com.ctse.orderservice.mapper.OrderMapper;
 import com.ctse.orderservice.model.Order;
+import com.ctse.orderservice.model.TimeSlot;
 import com.ctse.orderservice.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -78,11 +79,17 @@ public class OrderService {
         existing.setTotalPrice(request.getTotalPrice());
         
         if (request.getPickupSlot() != null) {
+            if (existing.getPickupSlot() == null) {
+                existing.setPickupSlot(new TimeSlot());
+            }
             existing.getPickupSlot().setDate(request.getPickupSlot().getDate());
             existing.getPickupSlot().setTime(request.getPickupSlot().getTime());
         }
         
         if (request.getDeliverySlot() != null) {
+            if (existing.getDeliverySlot() == null) {
+                existing.setDeliverySlot(new TimeSlot());
+            }
             existing.getDeliverySlot().setDate(request.getDeliverySlot().getDate());
             existing.getDeliverySlot().setTime(request.getDeliverySlot().getTime());
         }

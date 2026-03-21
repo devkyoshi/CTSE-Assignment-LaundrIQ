@@ -16,12 +16,7 @@ import { cn } from "@/lib/utils";
 
 const SERVICE_TYPES: ('STANDARD' | 'PREMIUM')[] = ['STANDARD', 'PREMIUM'];
 
-const PREMIUM_CATALOGUE = [
-  { name: 'Coat / Heavy Jacket', price: 15.00 },
-  { name: 'Party Dress', price: 25.00 },
-  { name: 'Suit (2-Piece)', price: 20.00 },
-  { name: 'Wedding Dress', price: 60.00 },
-];
+
 
 export default function CreateOrderPage() {
   const { user } = useAuth();
@@ -47,14 +42,24 @@ export default function CreateOrderPage() {
   const [cardNumber, setCardNumber] = useState("");
   const [processing, setProcessing] = useState(false);
 
+  const [rules, setRules] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    orderService.getPricingRules().then(setRules).catch(console.error);
+  }, []);
+
   useEffect(() => {
     orderService.calculatePrice(serviceType, {
       weight,
       items: cartItems,
       isExpress,
       isDryClean
-    }).then(setCalculatedPrice);
-  }, [cartItems, serviceType, weight, isExpress, isDryClean]);
+    }, rules).then(setCalculatedPrice);
+  }, [cartItems, serviceType, weight, isExpress, isDryClean, rules]);
+
+  const premiumCatalogue = Object.entries(rules)
+    .filter(([k]) => k.startsWith("PREM_CAT_"))
+    .map(([k, v]) => ({ name: k.replace("PREM_CAT_", "").replace(/_/g, " "), price: v }));
 
   const addToCart = (product: { name: string; price: number }) => {
     setCartItems(prev => {
@@ -79,7 +84,8 @@ export default function CreateOrderPage() {
         weight,
         items: cartItems,
         isExpress,
-        isDryClean
+        isDryClean,
+        totalPrice: calculatedPrice
       });
       
       // 2. Assign slots
@@ -155,11 +161,11 @@ export default function CreateOrderPage() {
                   <div className="grid grid-cols-2 gap-4">
                     <div className="flex items-center space-x-2 border p-3 rounded-lg bg-slate-50 border-border cursor-pointer hover:bg-slate-100 transition-colors">
                       <Checkbox id="express" checked={isExpress} onCheckedChange={(checked) => setIsExpress(checked as boolean)} />
-                      <Label htmlFor="express" className="cursor-pointer font-medium text-sm">Express (+50%)</Label>
+                      <Label htmlFor="express" className="cursor-pointer font-medium text-sm">Express (+{((rules["EXPRESS_MULTIPLIER"] ?? 1.5) - 1) * 100}%)</Label>
                     </div>
                     <div className="flex items-center space-x-2 border p-3 rounded-lg bg-slate-50 border-border cursor-pointer hover:bg-slate-100 transition-colors">
                       <Checkbox id="dryclean" checked={isDryClean} onCheckedChange={(checked) => setIsDryClean(checked as boolean)} />
-                      <Label htmlFor="dryclean" className="cursor-pointer font-medium text-sm">Dry Clean (+$15)</Label>
+                      <Label htmlFor="dryclean" className="cursor-pointer font-medium text-sm">Dry Clean (+{formatCurrency(rules["DRY_CLEAN_FEE"] ?? 15.00)})</Label>
                     </div>
                   </div>
                 </div>
@@ -172,7 +178,7 @@ export default function CreateOrderPage() {
                       <Label className="text-base block">Estimated Weight (Kg)</Label>
                       <div className="flex items-center gap-4">
                         <Input type="number" min="1" max="50" className="h-14 text-2xl font-bold w-32 px-4 shadow-sm" value={weight} onChange={(e) => setWeight(Number(e.target.value))} />
-                        <span className="text-muted-foreground font-medium">kg @ $12.50/kg</span>
+                        <span className="text-muted-foreground font-medium">kg @ {formatCurrency(rules["STANDARD_PER_KILO"] ?? 12.50)}/kg</span>
                       </div>
                       <p className="text-sm text-muted-foreground">This is an estimate. Final weight is subject to measurement upon pickup.</p>
                     </div>
@@ -180,7 +186,8 @@ export default function CreateOrderPage() {
                     <div className="space-y-4">
                       <Label className="text-base">Premium Catalogue</Label>
                       <div className="grid gap-3">
-                        {PREMIUM_CATALOGUE.map(c => (
+                        {premiumCatalogue.length === 0 ? <p className="text-sm text-muted-foreground">No premium items configured.</p> : null}
+                        {premiumCatalogue.map(c => (
                           <div key={c.name} className="flex items-center justify-between p-4 border border-border rounded-xl bg-slate-50/50 hover:bg-slate-50 transition-colors">
                             <div>
                               <p className="font-semibold text-foreground">{c.name}</p>
@@ -201,7 +208,7 @@ export default function CreateOrderPage() {
                       <div className="flex-1 space-y-3">
                         <div className="flex justify-between items-center p-4 rounded-xl bg-white border border-border shadow-sm">
                           <span className="font-medium">Standard Laundry <span className="text-muted-foreground ml-2">({weight} Kg)</span></span>
-                          <span className="font-medium tabular-nums">{formatCurrency(weight * 12.50)}</span>
+                          <span className="font-medium tabular-nums">{formatCurrency(weight * (rules["STANDARD_PER_KILO"] ?? 12.50))}</span>
                         </div>
                       </div>
                     ) : (
@@ -226,8 +233,8 @@ export default function CreateOrderPage() {
 
                     {(isExpress || isDryClean) && (
                       <div className="mt-4 pt-4 border-t space-y-2">
-                        {isDryClean && <div className="flex justify-between text-sm"><span className="text-muted-foreground font-medium flex items-center gap-1"><span className="text-blue-500 rounded-full h-1.5 w-1.5 bg-blue-500 block relative top-px"></span>Dry Cleaning Fee</span><span className="tabular-nums font-medium text-foreground">+$15.00</span></div>}
-                        {isExpress && <div className="flex justify-between text-sm"><span className="text-muted-foreground font-medium flex items-center gap-1"><span className="text-orange-500 rounded-full h-1.5 w-1.5 bg-orange-500 block relative top-px"></span>Express Surcharge</span><span className="tabular-nums font-medium text-foreground">+50%</span></div>}
+                        {isDryClean && <div className="flex justify-between text-sm"><span className="text-muted-foreground font-medium flex items-center gap-1"><span className="text-blue-500 rounded-full h-1.5 w-1.5 bg-blue-500 block relative top-px"></span>Dry Cleaning Fee</span><span className="tabular-nums font-medium text-foreground">+{formatCurrency(rules["DRY_CLEAN_FEE"] ?? 15.00)}</span></div>}
+                        {isExpress && <div className="flex justify-between text-sm"><span className="text-muted-foreground font-medium flex items-center gap-1"><span className="text-orange-500 rounded-full h-1.5 w-1.5 bg-orange-500 block relative top-px"></span>Express Surcharge</span><span className="tabular-nums font-medium text-foreground">+{((rules["EXPRESS_MULTIPLIER"] ?? 1.5) - 1) * 100}%</span></div>}
                       </div>
                     )}
 

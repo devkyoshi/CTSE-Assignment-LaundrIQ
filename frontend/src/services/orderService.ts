@@ -35,17 +35,22 @@ const unwrap = (res: any) => res.data?.data ?? res.data;
 class OrderService {
   async calculatePrice(
     serviceType: 'STANDARD' | 'PREMIUM',
-    options: { weight?: number; items?: Omit<OrderItem, 'id'>[]; isExpress: boolean; isDryClean: boolean }
+    options: { weight?: number; items?: Omit<OrderItem, 'id'>[]; isExpress: boolean; isDryClean: boolean },
+    rules: Record<string, number>
   ): Promise<number> {
+    const stdPerKg = rules["STANDARD_PER_KILO"] ?? 12.50;
+    const dryCleanFee = rules["DRY_CLEAN_FEE"] ?? 15.00;
+    const expressMult = rules["EXPRESS_MULTIPLIER"] ?? 1.5;
+
     let basePrice = 0;
     if (serviceType === 'STANDARD') {
-      basePrice = (options.weight || 0) * 12.50;
+      basePrice = (options.weight || 0) * stdPerKg;
     } else {
       basePrice = (options.items || []).reduce((sum, item) => sum + (item.quantity * item.unitPrice), 0);
     }
     
-    if (options.isDryClean) basePrice += 15.00;
-    if (options.isExpress) basePrice *= 1.5;
+    if (options.isDryClean) basePrice += dryCleanFee;
+    if (options.isExpress) basePrice *= expressMult;
 
     return Number(basePrice.toFixed(2));
   }
@@ -53,10 +58,8 @@ class OrderService {
   async createOrder(
     customerId: string, 
     serviceType: 'STANDARD' | 'PREMIUM',
-    options: { weight?: number; items?: Omit<OrderItem, 'id'>[]; isExpress: boolean; isDryClean: boolean; pickupSlot?: TimeSlot; deliverySlot?: TimeSlot }
+    options: { weight?: number; items?: Omit<OrderItem, 'id'>[]; isExpress: boolean; isDryClean: boolean; pickupSlot?: TimeSlot; deliverySlot?: TimeSlot; totalPrice: number }
   ): Promise<Order> {
-    const totalPrice = await this.calculatePrice(serviceType, options);
-    
     const payload = {
       customerId,
       serviceType,
@@ -66,7 +69,7 @@ class OrderService {
       isDryClean: options.isDryClean,
       pickupSlot: options.pickupSlot,
       deliverySlot: options.deliverySlot,
-      totalPrice
+      totalPrice: options.totalPrice
     };
 
     const res = await api.post("/api/orders", payload);
@@ -121,6 +124,17 @@ class OrderService {
   async markInCleaning(orderId: string | number) { return this.updateOrderStatus(orderId, 'IN_CLEANING'); }
   async markOutForDelivery(orderId: string | number) { return this.updateOrderStatus(orderId, 'OUT_FOR_DELIVERY'); }
   async markDelivered(orderId: string | number) { return this.updateOrderStatus(orderId, 'DELIVERED'); }
+
+  // Pricing configuration
+  async getPricingRules(): Promise<Record<string, number>> {
+    const res = await api.get("/api/orders/pricing");
+    return unwrap(res);
+  }
+
+  async updatePricingRules(rules: Record<string, number>): Promise<Record<string, number>> {
+    const res = await api.put("/api/orders/pricing", rules);
+    return unwrap(res);
+  }
 }
 
 export const orderService = new OrderService();

@@ -80,6 +80,23 @@ export function AppLayout({ children }: AppLayoutProps) {
               </Link>
             );
           })}
+          
+          {user?.roles?.includes("ROLE_ADMIN") && (
+            <Link
+              to="/admin/settings"
+              onClick={() => setIsMobileMenuOpen(false)}
+              className={`
+                flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors mt-4 border-t border-white/10 pt-4
+                ${location.pathname === "/admin/settings" 
+                  ? "bg-white/20 text-white" 
+                  : "text-yellow-400 hover:bg-white/10 hover:text-yellow-300"
+                }
+              `}
+            >
+              <Settings size={18} />
+              Admin Pricing
+            </Link>
+          )}
         </nav>
 
         <div className="p-4 shrink-0 border-t border-white/10 mt-2">
