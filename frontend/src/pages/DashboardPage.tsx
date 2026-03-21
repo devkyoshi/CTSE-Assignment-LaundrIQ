@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { orderService, Order } from "@/services/orderService";
-import { mockPaymentService, Payment } from "@/services/mockPaymentService";
+import { paymentService } from "@/services/paymentService";
+import type { Payment } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -41,12 +42,10 @@ export default function DashboardPage() {
 
         if (isAdmin) {
           orderData = await orderService.getAllOrders();
-          paymentsData = await mockPaymentService.getAllPayments();
+          paymentsData = await paymentService.getAll();
         } else {
           orderData = await orderService.getOrdersByCustomer(user.id);
-          const orderIds = new Set(orderData.map(o => o.id));
-          const allPayments = await mockPaymentService.getAllPayments();
-          paymentsData = allPayments.filter(p => orderIds.has(p.orderId));
+          paymentsData = await paymentService.getByCustomer(user.id);
         }
 
         setOrders(orderData || []);

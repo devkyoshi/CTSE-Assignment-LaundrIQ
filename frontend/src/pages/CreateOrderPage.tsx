@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { orderService, OrderItem } from "@/services/orderService";
-import { mockPaymentService } from "@/services/mockPaymentService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -38,8 +37,7 @@ export default function CreateOrderPage() {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("");
 
-  // Step 3: Payment
-  const [cardNumber, setCardNumber] = useState("");
+  // Step 3: Confirmation
   const [processing, setProcessing] = useState(false);
 
   const [rules, setRules] = useState<Record<string, number>>({});
@@ -92,21 +90,9 @@ export default function CreateOrderPage() {
       await orderService.assignPickupSlot(order.id, { date: pickupDate, time: pickupTime });
       await orderService.assignDeliverySlot(order.id, { date: deliveryDate, time: deliveryTime });
 
-      // 3. Mock Payment processing
-      const initPay = await mockPaymentService.initiatePayment(order.id, calculatedPrice);
-      const processed = await mockPaymentService.processPayment(initPay.id, {
-        method: "CREDIT_CARD",
-        cardNumberMask: cardNumber.slice(-4)
-      });
-
-      if (processed.status === "COMPLETED") {
-        await orderService.updateOrderStatus(order.id, "PICKED_UP"); // mock advancing status
-        toast.success("Order placed and payment successful!");
-        navigate(`/orders`);
-      } else {
-        toast.error("Payment failed. Order saved as pending.");
-        navigate(`/orders`);
-      }
+      // 3. Redirect to payment page
+      toast.success("Order created! Redirecting to payment...");
+      navigate(`/payments/make?orderId=${order.id}`);
     } catch (e: any) {
       toast.error("Error creating order");
     } finally {
@@ -313,7 +299,7 @@ export default function CreateOrderPage() {
           {step === 3 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">3. Payment & Confirmation</h2>
+                <h2 className="text-xl font-semibold">3. Confirm & Proceed to Payment</h2>
                 <Separator />
               </div>
 
@@ -325,21 +311,13 @@ export default function CreateOrderPage() {
 
                 <Separator />
 
-                <div className="space-y-5">
-                  <div className="space-y-1">
-                    <Label className="text-base font-semibold">Simulated Payment</Label>
-                    <p className="text-sm text-muted-foreground">Enter test card numbers to authorize transaction via mock gateway.</p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <Label>Card Number</Label>
-                    <Input className="h-12 text-lg font-mono tracking-widest placeholder:text-muted-foreground/50 bg-white" placeholder="4242 4242 4242 4242" value={cardNumber} onChange={e => setCardNumber(e.target.value)} maxLength={19} />
-                  </div>
+                <div className="space-y-2 text-center">
+                  <p className="text-sm text-muted-foreground">Your order will be created and you'll be redirected to the secure payment page powered by Stripe.</p>
                 </div>
 
                 <div className="pt-4">
-                  <Button size="lg" className="w-full text-base h-14 rounded-xl" onClick={submitOrder} disabled={processing || cardNumber.length < 8}>
-                    {processing ? "Authorizing Payment..." : `Pay ${formatCurrency(calculatedPrice)}`}
+                  <Button size="lg" className="w-full text-base h-14 rounded-xl" onClick={submitOrder} disabled={processing}>
+                    {processing ? "Creating Order..." : `Place Order & Pay ${formatCurrency(calculatedPrice)}`}
                   </Button>
                 </div>
               </div>

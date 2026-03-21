@@ -1,11 +1,12 @@
 import { useEffect, useState } from "react";
 import { useParams, Link } from "react-router-dom";
-import { mockPaymentService, Payment } from "@/services/mockPaymentService";
+import { paymentService } from "@/services/paymentService";
+import type { Payment } from "@/types";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getPaymentStatusVariant, formatCurrency, formatDate } from "@/lib/helpers";
+import { getPaymentStatusVariant, formatCurrency, formatDate, formatPaymentMethod } from "@/lib/helpers";
 import { toast } from "sonner";
 import { ArrowLeft } from "lucide-react";
 
@@ -16,7 +17,7 @@ export default function PaymentDetailPage() {
 
   useEffect(() => {
     if (!id) return;
-    mockPaymentService.getPaymentById(id)
+    paymentService.getById(Number(id))
       .then(setPayment)
       .catch(() => toast.error("Failed to load payment"))
       .finally(() => setLoading(false));
@@ -42,11 +43,11 @@ export default function PaymentDetailPage() {
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div><span className="text-muted-foreground">Order ID</span><p className="mt-0.5"><Link to={`/orders/${payment.orderId}`} className="text-primary hover:underline font-medium">{payment.orderId}</Link></p></div>
             <div><span className="text-muted-foreground">Amount</span><p className="font-medium tabular-nums mt-0.5 text-primary text-lg">{formatCurrency(payment.amount)}</p></div>
-            <div><span className="text-muted-foreground">Method</span><p className="font-medium mt-0.5">{payment.details?.method?.replace(/_/g, " ") || "—"}</p></div>
-            <div><span className="text-muted-foreground">Status</span><div className="mt-0.5"><Badge variant={getPaymentStatusVariant(payment.status as any)}>{payment.status}</Badge></div></div>
+            <div><span className="text-muted-foreground">Method</span><p className="font-medium mt-0.5">{formatPaymentMethod(payment.paymentMethod)}</p></div>
+            <div><span className="text-muted-foreground">Status</span><div className="mt-0.5"><Badge variant={getPaymentStatusVariant(payment.status)}>{payment.status}</Badge></div></div>
             <div><span className="text-muted-foreground">Created</span><p className="mt-0.5">{formatDate(payment.createdAt)}</p></div>
-            {payment.details?.cardNumberMask && (
-              <div><span className="text-muted-foreground">Card Used</span><p className="mt-0.5 font-mono">**** **** **** {payment.details.cardNumberMask}</p></div>
+            {payment.stripePaymentIntentId && (
+              <div><span className="text-muted-foreground">Reference</span><p className="mt-0.5 font-mono text-xs">{payment.stripePaymentIntentId}</p></div>
             )}
           </div>
         </CardContent>

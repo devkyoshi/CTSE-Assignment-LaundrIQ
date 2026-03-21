@@ -133,6 +133,9 @@ services:
       - DB_USERNAME=ctse
       - DB_PASSWORD=ctse_password
       - ORDER_SERVICE_GRPC_HOST=order-service
+      - ORDER_SERVICE_URL=http://order-service:8082
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY:-sk_test_placeholder}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET:-}
     depends_on:
       postgres:
         condition: service_healthy
