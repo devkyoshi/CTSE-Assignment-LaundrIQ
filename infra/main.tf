@@ -13,6 +13,7 @@ terraform {
     storage_account_name = "ctsetfstate"
     container_name       = "tfstate"
     key                  = "ctse-prod.tfstate"
+    use_azuread_auth     = true
   }
 }
 

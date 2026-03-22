@@ -110,23 +110,22 @@ graph LR
         PUSH[Push to main<br/>or PR merge]
     end
 
-    subgraph Job1["Job 1: build-and-push"]
-        CHECKOUT1[Checkout] --> LOGIN1[Azure Login]
+    subgraph GHA["GitHub Actions (automatic)"]
+        CHECKOUT1[Checkout] --> LOGIN1[Login to ACR<br/>admin creds]
         LOGIN1 --> BUILDX[Setup Buildx]
         BUILDX --> BUILD_BE[Build Backend<br/>Images x5]
         BUILD_BE --> BUILD_FE[Build Frontend<br/>Image]
         BUILD_FE --> PUSH_ACR[Push to ACR<br/>tag: commit SHA]
     end
 
-    subgraph Job2["Job 2: deploy"]
-        CHECKOUT2[Checkout] --> LOGIN2[Azure Login]
-        LOGIN2 --> TF_INIT[terraform init]
+    subgraph Local["Local Machine (manual)"]
+        AZ_LOGIN[az login] --> TF_INIT[terraform init]
         TF_INIT --> TF_PLAN[terraform plan]
         TF_PLAN --> TF_APPLY[terraform apply]
     end
 
     PUSH --> CHECKOUT1
-    PUSH_ACR --> CHECKOUT2
+    PUSH_ACR -.->|"run deploy.sh<br/>with commit SHA"| AZ_LOGIN
 
     classDef trigger fill:#e74c3c,stroke:#c0392b,color:#fff
     classDef build fill:#4a90d9,stroke:#2c5f8a,color:#fff
@@ -134,7 +133,7 @@ graph LR
 
     class PUSH trigger
     class CHECKOUT1,LOGIN1,BUILDX,BUILD_BE,BUILD_FE,PUSH_ACR build
-    class CHECKOUT2,LOGIN2,TF_INIT,TF_PLAN,TF_APPLY deploy
+    class AZ_LOGIN,TF_INIT,TF_PLAN,TF_APPLY deploy
 ```
 
 ## Network Topology
