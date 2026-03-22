@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { orderService, OrderItem } from "@/services/orderService";
-import { mockPaymentService } from "@/services/mockPaymentService";
+import { loyaltyService, LoyaltyAccount } from "@/services/loyaltyService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +31,17 @@ export default function CreateOrderPage() {
   const [isDryClean, setIsDryClean] = useState(false);
   
   const [calculatedPrice, setCalculatedPrice] = useState<number>(0);
+  const [loyaltyAccount, setLoyaltyAccount] = useState<LoyaltyAccount | null>(null);
+
+  const discountPercentage = (() => {
+    switch (loyaltyAccount?.tier) {
+      case "SILVER": return 0.05;
+      case "GOLD": return 0.10;
+      case "PLATINUM": return 0.15;
+      default: return 0;
+    }
+  })();
+  const discountedPrice = calculatedPrice * (1 - discountPercentage);
 
   // Step 2: Slots
   const [pickupDate, setPickupDate] = useState("");
@@ -38,15 +49,17 @@ export default function CreateOrderPage() {
   const [deliveryDate, setDeliveryDate] = useState("");
   const [deliveryTime, setDeliveryTime] = useState("");
 
-  // Step 3: Payment
-  const [cardNumber, setCardNumber] = useState("");
+  // Step 3: Confirmation
   const [processing, setProcessing] = useState(false);
 
   const [rules, setRules] = useState<Record<string, number>>({});
 
   useEffect(() => {
     orderService.getPricingRules().then(setRules).catch(console.error);
-  }, []);
+    if (user?.id) {
+      loyaltyService.getAccount(user.id).then(setLoyaltyAccount).catch(console.error);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     orderService.calculatePrice(serviceType, {
@@ -92,21 +105,9 @@ export default function CreateOrderPage() {
       await orderService.assignPickupSlot(order.id, { date: pickupDate, time: pickupTime });
       await orderService.assignDeliverySlot(order.id, { date: deliveryDate, time: deliveryTime });
 
-      // 3. Mock Payment processing
-      const initPay = await mockPaymentService.initiatePayment(order.id, calculatedPrice);
-      const processed = await mockPaymentService.processPayment(initPay.id, {
-        method: "CREDIT_CARD",
-        cardNumberMask: cardNumber.slice(-4)
-      });
-
-      if (processed.status === "COMPLETED") {
-        await orderService.updateOrderStatus(order.id, "PICKED_UP"); // mock advancing status
-        toast.success("Order placed and payment successful!");
-        navigate(`/orders`);
-      } else {
-        toast.error("Payment failed. Order saved as pending.");
-        navigate(`/orders`);
-      }
+      // 3. Redirect to payment page
+      toast.success("Order created! Redirecting to payment...");
+      navigate(`/payments/make?orderId=${order.id}`);
     } catch (e: any) {
       toast.error("Error creating order");
     } finally {
@@ -231,17 +232,20 @@ export default function CreateOrderPage() {
                       )
                     )}
 
-                    {(isExpress || isDryClean) && (
+                    {(isExpress || isDryClean || discountPercentage > 0) && (
                       <div className="mt-4 pt-4 border-t space-y-2">
                         {isDryClean && <div className="flex justify-between text-sm"><span className="text-muted-foreground font-medium flex items-center gap-1"><span className="text-blue-500 rounded-full h-1.5 w-1.5 bg-blue-500 block relative top-px"></span>Dry Cleaning Fee</span><span className="tabular-nums font-medium text-foreground">+{formatCurrency(rules["DRY_CLEAN_FEE"] ?? 15.00)}</span></div>}
                         {isExpress && <div className="flex justify-between text-sm"><span className="text-muted-foreground font-medium flex items-center gap-1"><span className="text-orange-500 rounded-full h-1.5 w-1.5 bg-orange-500 block relative top-px"></span>Express Surcharge</span><span className="tabular-nums font-medium text-foreground">+{((rules["EXPRESS_MULTIPLIER"] ?? 1.5) - 1) * 100}%</span></div>}
+                        {discountPercentage > 0 && (
+                          <div className="flex justify-between text-sm"><span className="text-emerald-600 font-medium flex items-center gap-1"><span className="text-emerald-500 rounded-full h-1.5 w-1.5 bg-emerald-500 block relative top-px"></span>Loyalty Discount ({loyaltyAccount?.tier})</span><span className="tabular-nums font-medium text-emerald-600">-{formatCurrency(calculatedPrice * discountPercentage)}</span></div>
+                        )}
                       </div>
                     )}
 
                     <div className="pt-6 mt-auto">
                       <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-border">
                         <span className="font-semibold text-muted-foreground">Subtotal</span>
-                        <p className="text-2xl font-bold text-foreground tabular-nums tracking-tight">{formatCurrency(calculatedPrice)}</p>
+                        <p className="text-2xl font-bold text-foreground tabular-nums tracking-tight">{formatCurrency(discountedPrice)}</p>
                       </div>
                     </div>
                   </div>
@@ -313,33 +317,25 @@ export default function CreateOrderPage() {
           {step === 3 && (
             <div className="space-y-8 animate-in fade-in slide-in-from-right-4 duration-300">
               <div className="space-y-4">
-                <h2 className="text-xl font-semibold">3. Payment & Confirmation</h2>
+                <h2 className="text-xl font-semibold">3. Confirm & Proceed to Payment</h2>
                 <Separator />
               </div>
 
               <div className="max-w-md mx-auto space-y-8 border rounded-2xl p-8 bg-slate-50 shadow-sm mt-4">
                 <div className="text-center space-y-2">
                   <p className="text-muted-foreground font-medium uppercase tracking-wider text-sm">Amount Due</p>
-                  <p className="text-5xl font-bold text-foreground tracking-tight">{formatCurrency(calculatedPrice)}</p>
+                  <p className="text-5xl font-bold text-foreground tracking-tight">{formatCurrency(discountedPrice)}</p>
                 </div>
 
                 <Separator />
 
-                <div className="space-y-5">
-                  <div className="space-y-1">
-                    <Label className="text-base font-semibold">Simulated Payment</Label>
-                    <p className="text-sm text-muted-foreground">Enter test card numbers to authorize transaction via mock gateway.</p>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <Label>Card Number</Label>
-                    <Input className="h-12 text-lg font-mono tracking-widest placeholder:text-muted-foreground/50 bg-white" placeholder="4242 4242 4242 4242" value={cardNumber} onChange={e => setCardNumber(e.target.value)} maxLength={19} />
-                  </div>
+                <div className="space-y-2 text-center">
+                  <p className="text-sm text-muted-foreground">Your order will be created and you'll be redirected to the secure payment page powered by Stripe.</p>
                 </div>
 
                 <div className="pt-4">
-                  <Button size="lg" className="w-full text-base h-14 rounded-xl" onClick={submitOrder} disabled={processing || cardNumber.length < 8}>
-                    {processing ? "Authorizing Payment..." : `Pay ${formatCurrency(calculatedPrice)}`}
+                  <Button size="lg" className="w-full text-base h-14 rounded-xl" onClick={submitOrder} disabled={processing}>
+                    {processing ? "Creating Order..." : `Place Order & Pay ${formatCurrency(discountedPrice)}`}
                   </Button>
                 </div>
               </div>

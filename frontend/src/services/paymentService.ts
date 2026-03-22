@@ -1,5 +1,5 @@
 import api from "@/lib/api";
-import type { Payment } from "@/types";
+import type { Payment, CreatePaymentRequest, ConfirmPaymentRequest } from "@/types";
 
 const unwrap = (res: any) => res.data?.data ?? res.data;
 
@@ -16,19 +16,16 @@ export const paymentService = {
     const res = await api.get(`/api/payments/order/${orderId}`);
     return unwrap(res);
   },
-  create: async (payment: Omit<Payment, "id" | "createdAt">): Promise<Payment> => {
-    const res = await api.post("/api/payments", payment);
+  getByCustomer: async (customerId: string): Promise<Payment[]> => {
+    const res = await api.get(`/api/payments/customer/${customerId}`);
     return unwrap(res);
   },
-  update: async (id: number, payment: Partial<Payment>): Promise<Payment> => {
-    const res = await api.put(`/api/payments/${id}`, payment);
+  createPayment: async (request: CreatePaymentRequest): Promise<Payment> => {
+    const res = await api.post("/api/payments", request);
     return unwrap(res);
   },
-  updateStatus: async (id: number, status: string): Promise<Payment> => {
-    const res = await api.patch(`/api/payments/${id}/status?status=${status}`);
+  confirmPayment: async (request: ConfirmPaymentRequest): Promise<Payment> => {
+    const res = await api.post("/api/payments/confirm", request);
     return unwrap(res);
-  },
-  delete: async (id: number): Promise<void> => {
-    await api.delete(`/api/payments/${id}`);
   },
 };

@@ -6,9 +6,11 @@ CREATE DATABASE authdb;
 CREATE DATABASE pricingdb;
 CREATE DATABASE orderdb;
 CREATE DATABASE paymentdb;
+CREATE DATABASE customer_db;
 
 -- Grant all privileges to the shared application user
-GRANT ALL PRIVILEGES ON DATABASE authdb    TO ctse;
-GRANT ALL PRIVILEGES ON DATABASE pricingdb TO ctse;
-GRANT ALL PRIVILEGES ON DATABASE orderdb   TO ctse;
-GRANT ALL PRIVILEGES ON DATABASE paymentdb TO ctse;
+GRANT ALL PRIVILEGES ON DATABASE authdb      TO ctse;
+GRANT ALL PRIVILEGES ON DATABASE pricingdb   TO ctse;
+GRANT ALL PRIVILEGES ON DATABASE orderdb     TO ctse;
+GRANT ALL PRIVILEGES ON DATABASE paymentdb   TO ctse;
+GRANT ALL PRIVILEGES ON DATABASE customer_db TO ctse;
