@@ -17,6 +17,7 @@ COPY payment-service/pom.xml payment-service/pom.xml
 # Copy this module's source and its dependencies
 COPY customer-service/src customer-service/src
 COPY common/src common/src
+COPY grpc-lib/src grpc-lib/src
 
 # Install parent POM (resolves module graph)
 RUN mvn install -N -DskipTests --no-transfer-progress
