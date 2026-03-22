@@ -16,22 +16,20 @@ import { formatDate } from "@/lib/helpers";
 
 const RATINGS = [5, 4, 3, 2, 1];
 const FEEDBACK_CATEGORIES = [
-    "SERVICE_QUALITY",
-    "CLEANLINESS",
-    "PUNCTUALITY",
-    "CUSTOMER_SUPPORT",
-    "PRICE_VALUE",
-    "DELIVERY",
+    "WASH_QUALITY",
+    "DELIVERY_TIME",
+    "PACKAGING",
+    "CUSTOMER_SERVICE",
+    "PRICING",
     "OTHER"
 ];
 
 const CATEGORY_LABELS: Record<string, string> = {
-    SERVICE_QUALITY: "Service Quality",
-    CLEANLINESS: "Cleanliness",
-    PUNCTUALITY: "Punctuality",
-    CUSTOMER_SUPPORT: "Customer Support",
-    PRICE_VALUE: "Price & Value",
-    DELIVERY: "Delivery",
+    WASH_QUALITY: "Wash Quality",
+    DELIVERY_TIME: "Delivery Time",
+    PACKAGING: "Packaging",
+    CUSTOMER_SERVICE: "Customer Service",
+    PRICING: "Pricing",
     OTHER: "Other"
 };
 
@@ -54,7 +52,8 @@ export default function FeedbackPage() {
     const [formData, setFormData] = useState<FeedbackRequest>({
         orderId: "",
         rating: 5,
-        category: "SERVICE_QUALITY",
+        customerId: "",
+        category: "WASH_QUALITY",
         comment: "",
         isPublic: true
     });

@@ -20,7 +20,7 @@ import java.util.Map;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/{customerId}/feedback")
+@RequestMapping("/api/customers/{customerId}/feedback")
 @RequiredArgsConstructor
 public class FeedbackController {
 

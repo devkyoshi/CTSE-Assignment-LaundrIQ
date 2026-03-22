@@ -5,9 +5,11 @@ import com.ctse.customer.dto.FeedbackDto;
 import com.ctse.customer.dto.FeedbackRequest;
 import com.ctse.customer.dto.FeedbackSummaryDto;
 import com.ctse.customer.dto.FeedbackUpdateRequest;
+import com.ctse.customer.grpc.client.OrderGrpcClient;
 import com.ctse.customer.model.CustomerFeedback;
 import com.ctse.customer.model.CustomerFeedback.FeedbackStatus;
 import com.ctse.customer.repositary.CustomerFeedbackRepository;
+import com.ctse.grpc.order.OrderServiceGrpc;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -26,7 +28,7 @@ public class FeedbackService {
     private static final int COMMENT_SNIPPET_LENGTH = 100;
 
     private final CustomerFeedbackRepository feedbackRepository;
-
+    private final OrderGrpcClient orderGrpcClient;
     // ──────────────────────────────────────────────────────────────
     //  Submit
     // ──────────────────────────────────────────────────────────────
@@ -63,6 +65,8 @@ public class FeedbackService {
 
     public FeedbackDto getFeedback(Long feedbackId, String customerId) {
         CustomerFeedback feedback = findAndValidateOwnership(feedbackId, customerId);
+        //use grpc to fetch order details from order service if needed for more context in the response
+
         return toDto(feedback);
     }
 

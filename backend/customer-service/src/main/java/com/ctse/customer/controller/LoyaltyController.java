@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/{customerId}/loyalty")
+@RequestMapping("/api/customers/{customerId}/loyalty")
 @RequiredArgsConstructor
 public class LoyaltyController {
 
