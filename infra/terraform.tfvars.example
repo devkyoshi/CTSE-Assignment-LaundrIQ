@@ -1,0 +1,15 @@
+# Copy this file to terraform.tfvars and fill in the values
+
+resource_group_name  = "ctse-prod"
+location             = "eastus"
+environment_name     = "ctse-prod"
+acr_name             = "ctseprodacr"
+postgres_server_name = "ctse-prod-pgserver"
+
+# Secrets — set these via environment variables or CI/CD:
+#   TF_VAR_postgres_admin_password
+#   TF_VAR_jwt_secret
+#   TF_VAR_stripe_secret_key
+#   TF_VAR_stripe_webhook_secret
+#   TF_VAR_stripe_publishable_key
+#   TF_VAR_image_tag
