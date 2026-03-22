@@ -12,7 +12,7 @@
 
     <artifactId>customer-service</artifactId>
     <name>customer-service</name>
-    <description>Customer Service - Microservice for managing orders</description>
+    <description>Customer Service - Microservice for managing customers</description>
 
     <dependencies>
         <dependency>

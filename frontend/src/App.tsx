@@ -17,6 +17,10 @@ import PaymentDetailPage from "@/pages/PaymentDetailPage";
 import CustomerProfilePage from "@/pages/CustomerProfilePage";
 import AdminSettingsPage from "@/pages/AdminSettingsPage";
 import NotFound from "@/pages/NotFound";
+import AddressesPage from "@/pages/AddressesPage.tsx";
+import LoyaltyPage from "@/pages/LoyaltyPage.tsx";
+import FeedbackPage from "@/pages/FeedbackPage.tsx";
+import PreferencesPage from "@/pages/PreferencesPage.tsx";
 
 const queryClient = new QueryClient();
 
@@ -36,8 +40,10 @@ const App = () => (
               <Route path="/orders/create" element={<CreateOrderPage />} />
               <Route path="/orders/:id" element={<OrderDetailPage />} />
               <Route path="/profile" element={<CustomerProfilePage />} />
-              <Route path="/addresses" element={<CustomerProfilePage />} />
-              <Route path="/preferences" element={<CustomerProfilePage />} />
+              <Route path="/addresses" element={<AddressesPage />} />
+              <Route path="/feedback" element={<FeedbackPage />} />
+              <Route path="/loyality" element={<LoyaltyPage />} />
+              <Route path="/preferences" element={<PreferencesPage />} />
               <Route path="/payments" element={<PaymentsPage />} />
               <Route path="/payments/create" element={<MakePaymentPage />} />
               <Route path="/payments/:id" element={<PaymentDetailPage />} />
