@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { orderService, OrderItem } from "@/services/orderService";
+import { loyaltyService, LoyaltyAccount } from "@/services/loyaltyService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,17 @@ export default function CreateOrderPage() {
   const [isDryClean, setIsDryClean] = useState(false);
   
   const [calculatedPrice, setCalculatedPrice] = useState<number>(0);
+  const [loyaltyAccount, setLoyaltyAccount] = useState<LoyaltyAccount | null>(null);
+
+  const discountPercentage = (() => {
+    switch (loyaltyAccount?.tier) {
+      case "SILVER": return 0.05;
+      case "GOLD": return 0.10;
+      case "PLATINUM": return 0.15;
+      default: return 0;
+    }
+  })();
+  const discountedPrice = calculatedPrice * (1 - discountPercentage);
 
   // Step 2: Slots
   const [pickupDate, setPickupDate] = useState("");
@@ -44,7 +56,10 @@ export default function CreateOrderPage() {
 
   useEffect(() => {
     orderService.getPricingRules().then(setRules).catch(console.error);
-  }, []);
+    if (user?.id) {
+      loyaltyService.getAccount(user.id).then(setLoyaltyAccount).catch(console.error);
+    }
+  }, [user?.id]);
 
   useEffect(() => {
     orderService.calculatePrice(serviceType, {
@@ -217,17 +232,20 @@ export default function CreateOrderPage() {
                       )
                     )}
 
-                    {(isExpress || isDryClean) && (
+                    {(isExpress || isDryClean || discountPercentage > 0) && (
                       <div className="mt-4 pt-4 border-t space-y-2">
                         {isDryClean && <div className="flex justify-between text-sm"><span className="text-muted-foreground font-medium flex items-center gap-1"><span className="text-blue-500 rounded-full h-1.5 w-1.5 bg-blue-500 block relative top-px"></span>Dry Cleaning Fee</span><span className="tabular-nums font-medium text-foreground">+{formatCurrency(rules["DRY_CLEAN_FEE"] ?? 15.00)}</span></div>}
                         {isExpress && <div className="flex justify-between text-sm"><span className="text-muted-foreground font-medium flex items-center gap-1"><span className="text-orange-500 rounded-full h-1.5 w-1.5 bg-orange-500 block relative top-px"></span>Express Surcharge</span><span className="tabular-nums font-medium text-foreground">+{((rules["EXPRESS_MULTIPLIER"] ?? 1.5) - 1) * 100}%</span></div>}
+                        {discountPercentage > 0 && (
+                          <div className="flex justify-between text-sm"><span className="text-emerald-600 font-medium flex items-center gap-1"><span className="text-emerald-500 rounded-full h-1.5 w-1.5 bg-emerald-500 block relative top-px"></span>Loyalty Discount ({loyaltyAccount?.tier})</span><span className="tabular-nums font-medium text-emerald-600">-{formatCurrency(calculatedPrice * discountPercentage)}</span></div>
+                        )}
                       </div>
                     )}
 
                     <div className="pt-6 mt-auto">
                       <div className="flex items-center justify-between p-4 bg-slate-50 rounded-xl border border-border">
                         <span className="font-semibold text-muted-foreground">Subtotal</span>
-                        <p className="text-2xl font-bold text-foreground tabular-nums tracking-tight">{formatCurrency(calculatedPrice)}</p>
+                        <p className="text-2xl font-bold text-foreground tabular-nums tracking-tight">{formatCurrency(discountedPrice)}</p>
                       </div>
                     </div>
                   </div>
@@ -306,7 +324,7 @@ export default function CreateOrderPage() {
               <div className="max-w-md mx-auto space-y-8 border rounded-2xl p-8 bg-slate-50 shadow-sm mt-4">
                 <div className="text-center space-y-2">
                   <p className="text-muted-foreground font-medium uppercase tracking-wider text-sm">Amount Due</p>
-                  <p className="text-5xl font-bold text-foreground tracking-tight">{formatCurrency(calculatedPrice)}</p>
+                  <p className="text-5xl font-bold text-foreground tracking-tight">{formatCurrency(discountedPrice)}</p>
                 </div>
 
                 <Separator />
@@ -317,7 +335,7 @@ export default function CreateOrderPage() {
 
                 <div className="pt-4">
                   <Button size="lg" className="w-full text-base h-14 rounded-xl" onClick={submitOrder} disabled={processing}>
-                    {processing ? "Creating Order..." : `Place Order & Pay ${formatCurrency(calculatedPrice)}`}
+                    {processing ? "Creating Order..." : `Place Order & Pay ${formatCurrency(discountedPrice)}`}
                   </Button>
                 </div>
               </div>

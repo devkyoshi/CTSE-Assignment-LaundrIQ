@@ -41,6 +41,7 @@ public class SecurityConfig {
                     "/api/auth/register",
                     "/api/auth/login",
                     "/actuator/**",
+                    "/api/auth/me",
                     "/h2-console/**"
                 ).permitAll()
                 // Everything else requires authentication

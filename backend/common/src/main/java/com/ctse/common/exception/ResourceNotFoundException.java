@@ -12,6 +12,9 @@ public class ResourceNotFoundException extends ServiceException {
     public ResourceNotFoundException(String resource, Object id) {
         super(String.format("%s with id '%s' not found", resource, id), HttpStatus.NOT_FOUND);
     }
+    public ResourceNotFoundException(String resource, String fieldName, Object fieldValue) {
+        super(String.format("%s not found with %s : '%s'", resource, fieldName, fieldValue), HttpStatus.NOT_FOUND);
+    }
 
     public ResourceNotFoundException(String message) {
         super(message, HttpStatus.NOT_FOUND);

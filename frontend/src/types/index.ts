@@ -23,6 +23,23 @@ export interface LoginData {
   roles: string[];
 }
 
+export interface UserProfile {
+  id: string;
+  username: string;
+  email: string;
+  roles: string[];
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ProfileUpdateRequest {
+  username?: string;
+  email?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
 export interface Order {
   id: number;
   itemId: number;
