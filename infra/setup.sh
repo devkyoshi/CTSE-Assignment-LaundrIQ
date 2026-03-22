@@ -26,6 +26,7 @@ RESOURCE_GROUP="ctse-prod"
 LOCATION="southeastasia"
 TF_STORAGE_ACCOUNT="ctsetfstate"
 TF_CONTAINER="tfstate"
+ACR_NAME="ctseprodacr"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -119,39 +120,35 @@ az storage container create \
   --output none
 
 # ──────────────────────────────────────────────
-# Create service principal
+# Export Azure credentials from current az login
 # ──────────────────────────────────────────────
-info "Creating service principal 'ctse-deploy'..."
-# Create SP and extract fields using az CLI's built-in --query (works on Mac/Linux/Windows)
-CLIENT_ID=$(az ad sp create-for-rbac \
-  --name "ctse-deploy" \
-  --role contributor \
-  --scopes "/subscriptions/$SUBSCRIPTION_ID/resourceGroups/$RESOURCE_GROUP" \
-  --query appId -o tsv)
-
-# The SP was just created, so we can query its credentials
-# Re-fetch tenant from the current account (tenant doesn't change)
+info "Extracting credentials from current 'az login' session..."
 TENANT_ID=$(az account show --query tenantId -o tsv)
 
-# Reset credentials to get a fresh password
-CLIENT_SECRET=$(az ad sp credential reset \
-  --id "$CLIENT_ID" \
-  --query password -o tsv)
+# Get an access token for the current session and encode it with subscription info
+# GitHub Actions will use this via azure/login with the creds format
+info "Generating Azure credentials JSON..."
 
-# Build AZURE_CREDENTIALS JSON for azure/login action
-AZURE_CREDENTIALS=$(cat <<EOF
-{"clientId":"$CLIENT_ID","clientSecret":"$CLIENT_SECRET","subscriptionId":"$SUBSCRIPTION_ID","tenantId":"$TENANT_ID"}
-EOF
-)
+# For student subscriptions without SP permissions, we use the access token approach.
+# The GitHub Actions workflow will use 'az login' with subscription ID + tenant ID
+# and authenticate via the ACR admin credentials for container registry access.
+
+# Get ACR admin credentials (ACR was created with admin enabled)
+info "Fetching ACR admin credentials..."
+ACR_LOGIN_SERVER=$(az acr show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --query loginServer -o tsv 2>/dev/null || echo "")
+ACR_USERNAME=$(az acr credential show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --query username -o tsv 2>/dev/null || echo "")
+ACR_PASSWORD=$(az acr credential show --name "$ACR_NAME" --resource-group "$RESOURCE_GROUP" --query "passwords[0].value" -o tsv 2>/dev/null || echo "")
+
+if [ -z "$ACR_LOGIN_SERVER" ]; then
+  warn "ACR not yet created. ACR secrets will be set after first 'terraform apply'."
+  warn "Re-run this script after the first deployment to set ACR secrets."
+fi
 
 # ──────────────────────────────────────────────
 # Set GitHub Actions secrets
 # ──────────────────────────────────────────────
 info "Setting GitHub Actions secrets on '$GITHUB_REPO'..."
 
-gh secret set AZURE_CREDENTIALS       --repo "$GITHUB_REPO" --body "$AZURE_CREDENTIALS"
-gh secret set AZURE_CLIENT_ID         --repo "$GITHUB_REPO" --body "$CLIENT_ID"
-gh secret set AZURE_CLIENT_SECRET     --repo "$GITHUB_REPO" --body "$CLIENT_SECRET"
 gh secret set AZURE_TENANT_ID         --repo "$GITHUB_REPO" --body "$TENANT_ID"
 gh secret set AZURE_SUBSCRIPTION_ID   --repo "$GITHUB_REPO" --body "$SUBSCRIPTION_ID"
 gh secret set AZURE_RESOURCE_GROUP    --repo "$GITHUB_REPO" --body "$RESOURCE_GROUP"
@@ -161,6 +158,13 @@ gh secret set STRIPE_SECRET_KEY       --repo "$GITHUB_REPO" --body "$STRIPE_SECR
 gh secret set STRIPE_WEBHOOK_SECRET   --repo "$GITHUB_REPO" --body "$STRIPE_WEBHOOK_SECRET"
 gh secret set STRIPE_PUBLISHABLE_KEY  --repo "$GITHUB_REPO" --body "$STRIPE_PUBLISHABLE_KEY"
 gh secret set ADMIN_PASSWORD          --repo "$GITHUB_REPO" --body "$ADMIN_PASSWORD"
+gh secret set ACR_NAME                --repo "$GITHUB_REPO" --body "$ACR_NAME"
+
+if [ -n "$ACR_LOGIN_SERVER" ]; then
+  gh secret set ACR_LOGIN_SERVER      --repo "$GITHUB_REPO" --body "$ACR_LOGIN_SERVER"
+  gh secret set ACR_USERNAME          --repo "$GITHUB_REPO" --body "$ACR_USERNAME"
+  gh secret set ACR_PASSWORD          --repo "$GITHUB_REPO" --body "$ACR_PASSWORD"
+fi
 
 # ──────────────────────────────────────────────
 # Summary
@@ -173,8 +177,12 @@ echo ""
 echo "  Resource Group:        $RESOURCE_GROUP"
 echo "  Location:              $LOCATION"
 echo "  TF State Storage:      $TF_STORAGE_ACCOUNT/$TF_CONTAINER"
-echo "  Service Principal:     ctse-deploy (App ID: $CLIENT_ID)"
+echo "  Tenant ID:             $TENANT_ID"
 echo "  GitHub Secrets set on: $GITHUB_REPO"
 echo ""
+if [ -z "$ACR_LOGIN_SERVER" ]; then
+  warn "ACR not yet created. After first 'terraform apply', re-run this script to set ACR secrets."
+  echo ""
+fi
 echo "  Next step: Push to 'main' branch to trigger the CI/CD pipeline."
 echo ""

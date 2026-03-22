@@ -1,17 +1,12 @@
-name: Build & Deploy to Azure Container Apps
+name: Build & Push to Azure Container Registry
 
 on:
   push:
     branches: [main]
 
-env:
-  ACR_NAME: ctseprodacr
-  ACR_LOGIN_SERVER: ctseprodacr.azurecr.io
-  RESOURCE_GROUP: ctse-prod
-
 jobs:
   # ──────────────────────────────────────────────
-  # Job 1: Build Docker images and push to ACR
+  # Build Docker images and push to ACR
   # ──────────────────────────────────────────────
   build-and-push:
     runs-on: ubuntu-latest
@@ -19,13 +14,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
       - name: Login to ACR
-        run: az acr login --name ${{ env.ACR_NAME }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ secrets.ACR_LOGIN_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
@@ -39,8 +33,8 @@ jobs:
           file: ./backend/auth-service/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/auth-service:${{ github.sha }}
-            ${{ env.ACR_LOGIN_SERVER }}/auth-service:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/auth-service:${{ github.sha }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/auth-service:latest
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -51,8 +45,8 @@ jobs:
           file: ./backend/customer-service/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/customer-service:${{ github.sha }}
-            ${{ env.ACR_LOGIN_SERVER }}/customer-service:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/customer-service:${{ github.sha }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/customer-service:latest
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -63,8 +57,8 @@ jobs:
           file: ./backend/order-service/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/order-service:${{ github.sha }}
-            ${{ env.ACR_LOGIN_SERVER }}/order-service:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/order-service:${{ github.sha }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/order-service:latest
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -75,8 +69,8 @@ jobs:
           file: ./backend/payment-service/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/payment-service:${{ github.sha }}
-            ${{ env.ACR_LOGIN_SERVER }}/payment-service:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/payment-service:${{ github.sha }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/payment-service:latest
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -87,8 +81,8 @@ jobs:
           file: ./backend/gateway/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/gateway:${{ github.sha }}
-            ${{ env.ACR_LOGIN_SERVER }}/gateway:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/gateway:${{ github.sha }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/gateway:latest
           cache-from: type=gha,scope=backend
           cache-to: type=gha,mode=max,scope=backend
 
@@ -101,68 +95,11 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
-            ${{ env.ACR_LOGIN_SERVER }}/frontend:latest
+            ${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
+            ${{ secrets.ACR_LOGIN_SERVER }}/frontend:latest
           build-args: |
             VITE_STRIPE_PUBLISHABLE_KEY=${{ secrets.STRIPE_PUBLISHABLE_KEY }}
             VITE_API_BASE_URL=
             NGINX_CONF=nginx.azure.conf
           cache-from: type=gha,scope=frontend
           cache-to: type=gha,mode=max,scope=frontend
-
-  # ──────────────────────────────────────────────
-  # Job 2: Deploy infrastructure and apps via Terraform
-  # ──────────────────────────────────────────────
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    defaults:
-      run:
-        working-directory: ./infra
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Login to Azure
-        uses: azure/login@v2
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v3
-        with:
-          terraform_version: "1.9"
-
-      - name: Terraform Init
-        run: terraform init
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
-      - name: Terraform Plan
-        run: |
-          terraform plan \
-            -var="subscription_id=${{ secrets.AZURE_SUBSCRIPTION_ID }}" \
-            -var="image_tag=${{ github.sha }}" \
-            -var="postgres_admin_password=${{ secrets.POSTGRES_ADMIN_PASSWORD }}" \
-            -var="jwt_secret=${{ secrets.JWT_SECRET }}" \
-            -var="stripe_secret_key=${{ secrets.STRIPE_SECRET_KEY }}" \
-            -var="stripe_webhook_secret=${{ secrets.STRIPE_WEBHOOK_SECRET }}" \
-            -var="stripe_publishable_key=${{ secrets.STRIPE_PUBLISHABLE_KEY }}" \
-            -var="admin_password=${{ secrets.ADMIN_PASSWORD }}" \
-            -out=tfplan
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-
-      - name: Terraform Apply
-        run: terraform apply -auto-approve tfplan
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
