@@ -290,8 +290,13 @@ module "frontend" {
   min_replicas = 1
   max_replicas = 1
 
-  secrets  = []
-  env_vars = []
+  secrets = []
+
+  env_vars = [
+    { name = "GATEWAY_URL", value = "https://${module.gateway.fqdn}" },
+  ]
+
+  depends_on = [module.gateway]
 
   resource_group_name          = local.common_app_args.resource_group_name
   container_app_environment_id = local.common_app_args.container_app_environment_id

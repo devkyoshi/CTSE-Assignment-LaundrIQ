@@ -21,6 +21,9 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 ARG NGINX_CONF=nginx.conf
 COPY ${NGINX_CONF} /etc/nginx/conf.d/default.conf
 
+ENV GATEWAY_URL=http://gateway
+
 EXPOSE 80
 
-CMD ["nginx", "-g", "daemon off;"]
+# Substitute GATEWAY_URL env var into nginx config at runtime, then start nginx
+CMD ["/bin/sh", "-c", "envsubst '${GATEWAY_URL}' < /etc/nginx/conf.d/default.conf > /tmp/default.conf && mv /tmp/default.conf /etc/nginx/conf.d/default.conf && nginx -g 'daemon off;'"]
