@@ -72,6 +72,27 @@ info "Setting Azure subscription to $SUBSCRIPTION_ID..."
 az account set --subscription "$SUBSCRIPTION_ID"
 
 # ──────────────────────────────────────────────
+# Register required resource providers
+# ──────────────────────────────────────────────
+PROVIDERS=(
+  "Microsoft.Storage"
+  "Microsoft.App"
+  "Microsoft.ContainerRegistry"
+  "Microsoft.DBforPostgreSQL"
+  "Microsoft.OperationalInsights"
+  "Microsoft.OperationsManagement"
+)
+
+for provider in "${PROVIDERS[@]}"; do
+  STATE=$(az provider show --namespace "$provider" --query registrationState -o tsv 2>/dev/null || echo "NotRegistered")
+  if [ "$STATE" != "Registered" ]; then
+    info "Registering provider $provider..."
+    az provider register --namespace "$provider" --wait
+  fi
+done
+info "All resource providers registered."
+
+# ──────────────────────────────────────────────
 # Create resource group
 # ──────────────────────────────────────────────
 info "Creating resource group '$RESOURCE_GROUP' in '$LOCATION'..."
