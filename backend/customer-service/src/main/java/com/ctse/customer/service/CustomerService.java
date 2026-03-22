@@ -24,18 +24,6 @@ public class CustomerService {
     private final CustomerPreferencesRepository preferencesRepository;
     private final CustomerMapper customerMapper;
 
-    // ==================== Profile Management ====================
-
-    public ProfileResponse getProfile(String customerId) {
-        log.info("Fetching profile for customer: {}", customerId);
-        // Note: This would typically call Auth Service to get user details
-        // For now, return a placeholder - would need Feign client to auth-service
-        ProfileResponse response = new ProfileResponse();
-        response.setId(customerId);
-        // Would fetch from auth-service via REST call
-        return response;
-    }
-
     // ==================== Address Management ====================
 
     @Transactional

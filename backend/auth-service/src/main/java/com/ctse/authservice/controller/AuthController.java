@@ -1,8 +1,6 @@
 package com.ctse.authservice.controller;
 
-import com.ctse.authservice.dto.AuthResponse;
-import com.ctse.authservice.dto.LoginRequest;
-import com.ctse.authservice.dto.RegisterRequest;
+import com.ctse.authservice.dto.*;
 import com.ctse.authservice.model.User;
 import com.ctse.authservice.service.AuthService;
 import com.ctse.common.response.ApiResponse;
@@ -38,11 +36,49 @@ public class AuthController {
                 ApiResponse.success("Login successful", authService.login(request)));
     }
 
+//    /** Returns the current user's profile (requires valid JWT). */
+//    @GetMapping("/me")
+//    public ResponseEntity<ApiResponse<User>> me(
+//            @AuthenticationPrincipal UserDetails principal) {
+//        return ResponseEntity.ok(
+//                ApiResponse.success(authService.getProfile(principal.getUsername())));
+//    }
+
     /** Returns the current user's profile (requires valid JWT). */
     @GetMapping("/me")
-    public ResponseEntity<ApiResponse<User>> me(
+    public ResponseEntity<ApiResponse<UserProfileResponse>> me(
             @AuthenticationPrincipal UserDetails principal) {
         return ResponseEntity.ok(
-                ApiResponse.success(authService.getProfile(principal.getUsername())));
+                ApiResponse.success("Profile retrieved successfully",
+                        authService.getProfile(principal.getUsername())));
+    }
+
+    /** Update the current user's profile */
+    @PutMapping("/me")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> updateProfile(
+            @AuthenticationPrincipal UserDetails principal,
+            @Valid @RequestBody ProfileUpdateRequest request) {
+        return ResponseEntity.ok(
+                ApiResponse.success("Profile updated successfully",
+                        authService.updateProfile(principal.getUsername(), request)));
+    }
+
+    /** Get user profile by ID (admin only - you may want to add role-based access) */
+    @GetMapping("/users/{userId}")
+    public ResponseEntity<ApiResponse<UserProfileResponse>> getUserById(
+            @PathVariable String userId) {
+        return ResponseEntity.ok(
+                ApiResponse.success("User retrieved successfully",
+                        authService.getProfileById(userId)));
+    }
+
+    /** Delete current user account */
+    @DeleteMapping("/me")
+    public ResponseEntity<ApiResponse<Void>> deleteAccount(
+            @AuthenticationPrincipal UserDetails principal,
+            @RequestParam String password) {
+        authService.deleteUser(principal.getUsername(), password);
+        return ResponseEntity.ok(
+                ApiResponse.success("Account deactivated successfully", null));
     }
 }

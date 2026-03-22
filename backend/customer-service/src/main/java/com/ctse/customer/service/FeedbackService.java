@@ -9,15 +9,14 @@ import com.ctse.customer.grpc.client.OrderGrpcClient;
 import com.ctse.customer.model.CustomerFeedback;
 import com.ctse.customer.model.CustomerFeedback.FeedbackStatus;
 import com.ctse.customer.repositary.CustomerFeedbackRepository;
-import com.ctse.grpc.order.OrderServiceGrpc;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.ctse.grpc.order.GetOrderSummaryResponse;
 
-import java.nio.file.AccessDeniedException;
 import java.time.LocalDateTime;
 
 @Slf4j
@@ -29,6 +28,7 @@ public class FeedbackService {
 
     private final CustomerFeedbackRepository feedbackRepository;
     private final OrderGrpcClient orderGrpcClient;
+
     // ──────────────────────────────────────────────────────────────
     //  Submit
     // ──────────────────────────────────────────────────────────────
@@ -37,6 +37,19 @@ public class FeedbackService {
     public FeedbackDto submitFeedback(FeedbackRequest request) {
         log.info("Submitting feedback for order: {} by customer: {}",
                 request.getOrderId(), request.getCustomerId());
+
+        // Validate that the order exists and belongs to the customer
+        boolean isValidOrder = orderGrpcClient.validateOrderOwnership(
+                request.getOrderId(),
+                request.getCustomerId()
+        );
+
+        if (!isValidOrder) {
+            throw new IllegalArgumentException(
+                    "Invalid order: Order " + request.getOrderId() +
+                            " does not exist or does not belong to customer " + request.getCustomerId()
+            );
+        }
 
         // One review per order — prevent duplicates
         if (feedbackRepository.existsByOrderId(request.getOrderId())) {
@@ -56,7 +69,10 @@ public class FeedbackService {
 
         CustomerFeedback saved = feedbackRepository.save(feedback);
         log.info("Feedback submitted with id: {}", saved.getId());
-        return toDto(saved);
+
+        // Fetch order details for the response
+        GetOrderSummaryResponse orderSummary = orderGrpcClient.getOrderSummary(saved.getOrderId());
+        return toDtoWithOrderDetails(saved, orderSummary);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -65,9 +81,10 @@ public class FeedbackService {
 
     public FeedbackDto getFeedback(Long feedbackId, String customerId) {
         CustomerFeedback feedback = findAndValidateOwnership(feedbackId, customerId);
-        //use grpc to fetch order details from order service if needed for more context in the response
 
-        return toDto(feedback);
+        GetOrderSummaryResponse orderSummary = orderGrpcClient.getOrderSummary(feedback.getOrderId());
+
+        return toDtoWithOrderDetails(feedback, orderSummary);
     }
 
     public Page<FeedbackSummaryDto> getFeedbackHistory(String customerId, Pageable pageable) {
@@ -84,7 +101,7 @@ public class FeedbackService {
     }
 
     // ──────────────────────────────────────────────────────────────
-    //  Update (customer can edit before it's responded to)
+    //  Update
     // ──────────────────────────────────────────────────────────────
 
     @Transactional
@@ -102,7 +119,11 @@ public class FeedbackService {
         if (request.getComment() != null)    feedback.setComment(request.getComment());
         if (request.getIsPublic() != null)   feedback.setIsPublic(request.getIsPublic());
 
-        return toDto(feedbackRepository.save(feedback));
+        CustomerFeedback updated = feedbackRepository.save(feedback);
+
+        // Fetch order details for the response
+        GetOrderSummaryResponse orderSummary = orderGrpcClient.getOrderSummary(updated.getOrderId());
+        return toDtoWithOrderDetails(updated, orderSummary);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -124,7 +145,7 @@ public class FeedbackService {
     }
 
     // ──────────────────────────────────────────────────────────────
-    //  Staff response (internal — call from admin service or directly)
+    //  Staff response
     // ──────────────────────────────────────────────────────────────
 
     @Transactional
@@ -138,7 +159,11 @@ public class FeedbackService {
         feedback.setStatus(FeedbackStatus.RESPONDED);
         feedback.setRespondedAt(LocalDateTime.now());
 
-        return toDto(feedbackRepository.save(feedback));
+        CustomerFeedback updated = feedbackRepository.save(feedback);
+
+        // Fetch order details for the response
+        GetOrderSummaryResponse orderSummary = orderGrpcClient.getOrderSummary(updated.getOrderId());
+        return toDtoWithOrderDetails(updated, orderSummary);
     }
 
     // ──────────────────────────────────────────────────────────────
@@ -156,6 +181,9 @@ public class FeedbackService {
         return feedback;
     }
 
+    /**
+     * Convert CustomerFeedback to FeedbackDto without order details
+     */
     private FeedbackDto toDto(CustomerFeedback f) {
         return FeedbackDto.builder()
                 .id(f.getId())
@@ -170,6 +198,42 @@ public class FeedbackService {
                 .respondedAt(f.getRespondedAt())
                 .createdAt(f.getCreatedAt())
                 .build();
+    }
+
+    /**
+     * Convert CustomerFeedback to FeedbackDto with order details
+     */
+    private FeedbackDto toDtoWithOrderDetails(CustomerFeedback feedback, GetOrderSummaryResponse orderSummary) {
+        FeedbackDto.FeedbackDtoBuilder builder = FeedbackDto.builder()
+                .id(feedback.getId())
+                .customerId(feedback.getCustomerId())
+                .orderId(feedback.getOrderId())
+                .rating(feedback.getRating())
+                .category(feedback.getCategory())
+                .comment(feedback.getComment())
+                .isPublic(feedback.getIsPublic())
+                .status(feedback.getStatus())
+                .staffResponse(feedback.getStaffResponse())
+                .respondedAt(feedback.getRespondedAt())
+                .createdAt(feedback.getCreatedAt());
+
+        // Add order details if available
+        if (orderSummary != null) {
+            builder.orderStatus(orderSummary.getStatus())
+                    .orderTotalAmount(orderSummary.getTotalAmount())
+                    .orderCurrency(orderSummary.getCurrency())
+                    .orderCustomerId(orderSummary.getCustomerId());
+
+            log.debug("Added order details - Status: {}, Amount: {} {}",
+                    orderSummary.getStatus(),
+                    orderSummary.getTotalAmount(),
+                    orderSummary.getCurrency()
+            );
+        } else {
+            log.warn("Order details not available for order: {}", feedback.getOrderId());
+        }
+
+        return builder.build();
     }
 
     private FeedbackSummaryDto toSummaryDto(CustomerFeedback f) {

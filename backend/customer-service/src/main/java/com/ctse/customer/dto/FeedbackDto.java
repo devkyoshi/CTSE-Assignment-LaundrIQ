@@ -2,6 +2,7 @@ package com.ctse.customer.dto;
 
 import com.ctse.customer.model.CustomerFeedback.FeedbackCategory;
 import com.ctse.customer.model.CustomerFeedback.FeedbackStatus;
+import com.ctse.grpc.order.OrderStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -25,5 +26,8 @@ public class FeedbackDto {
     private String staffResponse;
     private LocalDateTime respondedAt;
     private LocalDateTime createdAt;
-
+    private OrderStatus orderStatus;
+    private Double orderTotalAmount;
+    private String orderCurrency;
+    private String orderCustomerId; // For validation/debugging
 }
