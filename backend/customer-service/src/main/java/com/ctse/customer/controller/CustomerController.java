@@ -20,14 +20,7 @@ public class CustomerController {
 
     private final CustomerService customerService;
 
-    // ==================== Profile Management ====================
 
-    @GetMapping("/{customerId}/profile")
-    public ResponseEntity<ApiResponse<ProfileResponse>> getProfile(@PathVariable String customerId) {
-        log.info("Received request to get profile for customer: {}", customerId);
-        ProfileResponse profile = customerService.getProfile(customerId);
-        return ResponseEntity.ok(ApiResponse.success("Profile retrieved successfully", profile));
-    }
 
     // ==================== Address Management ====================
 
