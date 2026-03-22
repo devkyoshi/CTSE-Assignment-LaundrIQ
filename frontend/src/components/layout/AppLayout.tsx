@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { 
-  Menu, X, LayoutDashboard, ShoppingBag, 
+import {
+  Menu, X, LayoutDashboard, ShoppingBag,
   MapPin, User, LogOut, Settings, ChevronUp,
-  ChevronRight
+  ChevronRight, MessageSquare, Gift
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -29,6 +29,8 @@ export function AppLayout({ children }: AppLayoutProps) {
     { name: "Orders", href: "/orders", icon: ShoppingBag },
     { name: "My Profile", href: "/profile", icon: User },
     { name: "Addresses", href: "/addresses", icon: MapPin },
+    { name: "loyalty", href: "/loyalty", icon: Gift  },
+    { name: "Feedback", href: "/feedback", icon: MessageSquare  },
     { name: "Preferences", href: "/preferences", icon: Settings },
   ];
 
