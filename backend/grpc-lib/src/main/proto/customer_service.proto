@@ -4,9 +4,20 @@ package com.ctse.grpc.customer;
 
 option java_package = "com.ctse.grpc.customer";
 option java_outer_classname = "CustomerServiceProto";
+option java_multiple_files = true;
 
 service CustomerService {
     rpc GetCustomerProfile (GetCustomerRequest) returns (CustomerProfileResponse);
+    rpc GetCustomerLoyalty (GetLoyaltyRequest) returns (LoyaltyResponse);
+}
+
+message GetLoyaltyRequest {
+    string customer_id = 1;
+}
+
+message LoyaltyResponse {
+    string tier = 1;
+    double discount_percentage = 2;
 }
 
 message GetCustomerRequest {

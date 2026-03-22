@@ -17,7 +17,7 @@ import {
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
-import {LoyaltyAccount, loyaltyService, LoyaltyTransaction} from "@/services/loyaltyService .ts";
+import {LoyaltyAccount, loyaltyService, LoyaltyTransaction} from "@/services/loyaltyService.ts";
 
 const TIER_CONFIG: Record<string, { color: string; icon: any; label: string; minPoints: number }> = {
     BRONZE: { color: "bg-amber-600", icon: Award, label: "Bronze", minPoints: 0 },

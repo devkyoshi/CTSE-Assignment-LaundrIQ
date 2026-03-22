@@ -13,6 +13,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.ctse.orderservice.grpc.client.CustomerGrpcClient;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -23,6 +25,7 @@ public class OrderService {
 
     private final OrderRepository orderRepository;
     private final OrderMapper orderMapper;
+    private final CustomerGrpcClient customerGrpcClient;
 
     public List<OrderResponse> findAll() {
         log.info("Fetching all orders");
@@ -48,6 +51,15 @@ public class OrderService {
     @Transactional
     public OrderResponse createOrder(CreateOrderRequest request) {
         log.info("Creating order for customer: {}", request.getCustomerId());
+        
+        double discountPercentage = customerGrpcClient.getCustomerDiscount(request.getCustomerId());
+        if (discountPercentage > 0 && request.getTotalPrice() != null) {
+            double discountedPrice = request.getTotalPrice() * (1 - discountPercentage);
+            log.info("Applying loyalty discount. Original price: {}, New price: {}", 
+                     request.getTotalPrice(), discountedPrice);
+            request.setTotalPrice(discountedPrice);
+        }
+
         Order order = orderMapper.toEntity(request);
         Order savedOrder = orderRepository.save(order);
         log.info("Order created successfully with id: {}", savedOrder.getId());
