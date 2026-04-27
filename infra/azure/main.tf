@@ -33,7 +33,7 @@ data "azurerm_resource_group" "this" {
 # Azure Container Registry
 # ──────────────────────────────────────────────
 module "acr" {
-  source              = "./modules/container-registry"
+  source              = "modulesontainer-registry"
   name                = var.acr_name
   resource_group_name = data.azurerm_resource_group.this.name
   location            = data.azurerm_resource_group.this.location
@@ -43,7 +43,7 @@ module "acr" {
 # PostgreSQL Flexible Server
 # ──────────────────────────────────────────────
 module "postgres" {
-  source              = "./modules/postgres"
+  source              = "modulesostgres"
   server_name         = var.postgres_server_name
   resource_group_name = data.azurerm_resource_group.this.name
   location            = data.azurerm_resource_group.this.location
@@ -55,7 +55,7 @@ module "postgres" {
 # Container Apps Environment
 # ──────────────────────────────────────────────
 module "container_apps_env" {
-  source              = "./modules/container-apps-env"
+  source              = "modulesontainer-apps-env"
   name                = var.environment_name
   resource_group_name = data.azurerm_resource_group.this.name
   location            = data.azurerm_resource_group.this.location
@@ -93,7 +93,7 @@ locals {
 # Auth Service
 # ──────────────────────────────────────────────
 module "auth_service" {
-  source = "./modules/container-app"
+  source = "modulesontainer-app"
 
   name       = "auth-service"
   image_name = "auth-service"
@@ -134,7 +134,7 @@ module "auth_service" {
 # Customer Service
 # ──────────────────────────────────────────────
 module "customer_service" {
-  source = "./modules/container-app"
+  source = "modulesontainer-app"
 
   name       = "customer-service"
   image_name = "customer-service"
@@ -167,7 +167,7 @@ module "customer_service" {
 # Order Service
 # ──────────────────────────────────────────────
 module "order_service" {
-  source = "./modules/container-app"
+  source = "modulesontainer-app"
 
   name       = "order-service"
   image_name = "order-service"
@@ -202,7 +202,7 @@ module "order_service" {
 # Payment Service
 # ──────────────────────────────────────────────
 module "payment_service" {
-  source = "./modules/container-app"
+  source = "modulesontainer-app"
 
   name       = "payment-service"
   image_name = "payment-service"
@@ -242,7 +242,7 @@ module "payment_service" {
 # API Gateway
 # ──────────────────────────────────────────────
 module "gateway" {
-  source = "./modules/container-app"
+  source = "modulesontainer-app"
 
   name       = "gateway"
   image_name = "gateway"
@@ -280,7 +280,7 @@ module "gateway" {
 # Frontend
 # ──────────────────────────────────────────────
 module "frontend" {
-  source = "./modules/container-app"
+  source = "modulesontainer-app"
 
   name       = "frontend"
   image_name = "frontend"

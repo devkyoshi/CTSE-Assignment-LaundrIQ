@@ -5,9 +5,9 @@
 .env
 
 # Terraform
-infra/.terraform/
-infra/*.tfstate
-infra/*.tfstate.backup
-infra/*.tfvars
-infra/tfplan
-infra/.terraform.lock.hcl
+**/.terraform/
+**/.terraform.lock.hcl
+**/terraform.tfvars
+**/terraform.tfplan
+**/*.tfstate
+**/*.tfstate.backup

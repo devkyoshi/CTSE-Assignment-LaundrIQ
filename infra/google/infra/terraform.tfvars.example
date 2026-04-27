@@ -1,0 +1,18 @@
+# Copy to terraform.tfvars — never commit that file.
+#
+# Run after bootstrap/:
+#   terraform init -backend-config="bucket=YOUR_BUCKET_NAME"
+#   terraform apply -var-file=terraform.tfvars
+
+project_id     = "your-gcp-project-id"
+region         = "us-central1"
+ar_repo_name   = "laundriq"
+db_tier        = "db-f1-micro"
+admin_username = "admin"
+admin_email    = "admin@mail.com"
+
+db_password           = "admin@123"
+jwt_secret            = ""
+admin_password        = ""
+stripe_secret_key     = ""
+stripe_webhook_secret = ""

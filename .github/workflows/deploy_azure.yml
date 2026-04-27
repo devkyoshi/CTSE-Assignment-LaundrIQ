@@ -1,8 +1,9 @@
+# DEPRECATED — deployment has moved to Google Cloud Run (deploy_google.yml).
+# This workflow is disabled.
 name: Build & Push to Azure Container Registry
 
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:  # manual trigger only; no longer runs on push
 
 jobs:
   # ──────────────────────────────────────────────

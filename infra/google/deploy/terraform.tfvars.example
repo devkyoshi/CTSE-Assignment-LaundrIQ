@@ -1,0 +1,14 @@
+# This module is normally run by CI with image_tag set to the git SHA.
+# You can also run it locally to deploy a specific tag.
+#
+#   terraform init -backend-config="bucket=YOUR_BUCKET_NAME"
+#   terraform apply -var-file=terraform.tfvars
+
+project_id   = "your-gcp-project-id"
+region       = "us-central1"
+ar_repo_name = "laundriq"
+image_tag    = "latest"
+
+# Only needed if you changed the defaults in infra/:
+# admin_username = "admin"
+# admin_email    = "admin@mail.com"
