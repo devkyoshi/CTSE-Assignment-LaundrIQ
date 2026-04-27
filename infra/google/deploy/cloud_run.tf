@@ -5,11 +5,7 @@ locals {
   db_user   = "ctse"
   run_sa    = data.google_service_account.cloud_run_sa.email
   connector = data.google_vpc_access_connector.connector.id
-}
-
-# Shorthand: reference a secret ID by its key in the data.google_secret_manager_secret map
-locals {
-  s = data.google_secret_manager_secret.secrets
+  s         = data.google_secret_manager_secret.secrets
 }
 
 # ── Auth Service ──────────────────────────────────────────────────────────────
@@ -37,23 +33,46 @@ resource "google_cloud_run_v2_service" "auth_service" {
     containers {
       image = "${local.image_base}/auth-service:${var.image_tag}"
 
-      ports { container_port = 8084 }
+      ports {
+        container_port = 8084
+      }
 
-      resources { limits = { cpu = "1", memory = "512Mi" } }
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
 
       startup_probe {
         initial_delay_seconds = 30
         period_seconds        = 10
         failure_threshold     = 9
-        tcp_socket { port = 8084 }
+        tcp_socket {
+          port = 8084
+        }
       }
 
-      env { name = "SPRING_PROFILES_ACTIVE"; value = "default" }
-      env { name = "DB_URL";         value = "${local.db_base}/authdb" }
-      env { name = "DB_USERNAME";    value = local.db_user }
-      env { name = "ADMIN_USERNAME"; value = var.admin_username }
-      env { name = "ADMIN_EMAIL";    value = var.admin_email }
-
+      env {
+        name  = "SPRING_PROFILES_ACTIVE"
+        value = "default"
+      }
+      env {
+        name  = "DB_URL"
+        value = "${local.db_base}/authdb"
+      }
+      env {
+        name  = "DB_USERNAME"
+        value = local.db_user
+      }
+      env {
+        name  = "ADMIN_USERNAME"
+        value = var.admin_username
+      }
+      env {
+        name  = "ADMIN_EMAIL"
+        value = var.admin_email
+      }
       env {
         name = "DB_PASSWORD"
         value_source {
@@ -118,21 +137,38 @@ resource "google_cloud_run_v2_service" "customer_service" {
     containers {
       image = "${local.image_base}/customer-service:${var.image_tag}"
 
-      ports { container_port = 8086 }
+      ports {
+        container_port = 8086
+      }
 
-      resources { limits = { cpu = "1", memory = "512Mi" } }
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
 
       startup_probe {
         initial_delay_seconds = 30
         period_seconds        = 10
         failure_threshold     = 9
-        tcp_socket { port = 8086 }
+        tcp_socket {
+          port = 8086
+        }
       }
 
-      env { name = "SPRING_PROFILES_ACTIVE"; value = "default" }
-      env { name = "DB_URL";      value = "${local.db_base}/customer_db" }
-      env { name = "DB_USERNAME"; value = local.db_user }
-
+      env {
+        name  = "SPRING_PROFILES_ACTIVE"
+        value = "default"
+      }
+      env {
+        name  = "DB_URL"
+        value = "${local.db_base}/customer_db"
+      }
+      env {
+        name  = "DB_USERNAME"
+        value = local.db_user
+      }
       env {
         name = "DB_PASSWORD"
         value_source {
@@ -187,19 +223,34 @@ resource "google_cloud_run_v2_service" "customer_service_grpc" {
         container_port = 9096
       }
 
-      resources { limits = { cpu = "1", memory = "512Mi" } }
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
 
       startup_probe {
         initial_delay_seconds = 30
         period_seconds        = 10
         failure_threshold     = 9
-        tcp_socket { port = 9096 }
+        tcp_socket {
+          port = 9096
+        }
       }
 
-      env { name = "SPRING_PROFILES_ACTIVE"; value = "default" }
-      env { name = "DB_URL";      value = "${local.db_base}/customer_db" }
-      env { name = "DB_USERNAME"; value = local.db_user }
-
+      env {
+        name  = "SPRING_PROFILES_ACTIVE"
+        value = "default"
+      }
+      env {
+        name  = "DB_URL"
+        value = "${local.db_base}/customer_db"
+      }
+      env {
+        name  = "DB_USERNAME"
+        value = local.db_user
+      }
       env {
         name = "DB_PASSWORD"
         value_source {
@@ -246,29 +297,46 @@ resource "google_cloud_run_v2_service" "order_service" {
     containers {
       image = "${local.image_base}/order-service:${var.image_tag}"
 
-      ports { container_port = 8082 }
+      ports {
+        container_port = 8082
+      }
 
-      resources { limits = { cpu = "1", memory = "512Mi" } }
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
 
       startup_probe {
         initial_delay_seconds = 30
         period_seconds        = 10
         failure_threshold     = 9
-        tcp_socket { port = 8082 }
+        tcp_socket {
+          port = 8082
+        }
       }
 
-      env { name = "SPRING_PROFILES_ACTIVE"; value = "default" }
-      env { name = "DB_URL";      value = "${local.db_base}/orderdb" }
-      env { name = "DB_USERNAME"; value = local.db_user }
-
-      # Cloud Run terminates TLS on 443 and forwards to the h2c container;
-      # the gRPC stub connects to the hostname on port 443.
+      env {
+        name  = "SPRING_PROFILES_ACTIVE"
+        value = "default"
+      }
+      env {
+        name  = "DB_URL"
+        value = "${local.db_base}/orderdb"
+      }
+      env {
+        name  = "DB_USERNAME"
+        value = local.db_user
+      }
       env {
         name  = "CUSTOMER_SERVICE_GRPC_HOST"
         value = trimprefix(google_cloud_run_v2_service.customer_service_grpc.uri, "https://")
       }
-      env { name = "CUSTOMER_SERVICE_GRPC_PORT"; value = "443" }
-
+      env {
+        name  = "CUSTOMER_SERVICE_GRPC_PORT"
+        value = "443"
+      }
       env {
         name = "DB_PASSWORD"
         value_source {
@@ -317,22 +385,42 @@ resource "google_cloud_run_v2_service" "payment_service" {
     containers {
       image = "${local.image_base}/payment-service:${var.image_tag}"
 
-      ports { container_port = 8083 }
+      ports {
+        container_port = 8083
+      }
 
-      resources { limits = { cpu = "1", memory = "512Mi" } }
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
 
       startup_probe {
         initial_delay_seconds = 30
         period_seconds        = 10
         failure_threshold     = 9
-        tcp_socket { port = 8083 }
+        tcp_socket {
+          port = 8083
+        }
       }
 
-      env { name = "SPRING_PROFILES_ACTIVE"; value = "default" }
-      env { name = "DB_URL";            value = "${local.db_base}/paymentdb" }
-      env { name = "DB_USERNAME";       value = local.db_user }
-      env { name = "ORDER_SERVICE_URL"; value = google_cloud_run_v2_service.order_service.uri }
-
+      env {
+        name  = "SPRING_PROFILES_ACTIVE"
+        value = "default"
+      }
+      env {
+        name  = "DB_URL"
+        value = "${local.db_base}/paymentdb"
+      }
+      env {
+        name  = "DB_USERNAME"
+        value = local.db_user
+      }
+      env {
+        name  = "ORDER_SERVICE_URL"
+        value = google_cloud_run_v2_service.order_service.uri
+      }
       env {
         name = "DB_PASSWORD"
         value_source {
@@ -394,22 +482,46 @@ resource "google_cloud_run_v2_service" "gateway" {
     containers {
       image = "${local.image_base}/gateway:${var.image_tag}"
 
-      ports { container_port = 8080 }
+      ports {
+        container_port = 8080
+      }
 
-      resources { limits = { cpu = "1", memory = "512Mi" } }
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "512Mi"
+        }
+      }
 
       startup_probe {
         initial_delay_seconds = 20
         period_seconds        = 10
         failure_threshold     = 6
-        tcp_socket { port = 8080 }
+        tcp_socket {
+          port = 8080
+        }
       }
 
-      env { name = "AUTH_SERVICE_URL";     value = google_cloud_run_v2_service.auth_service.uri }
-      env { name = "CUSTOMER_SERVICE_URL"; value = google_cloud_run_v2_service.customer_service.uri }
-      env { name = "ORDER_SERVICE_URL";    value = google_cloud_run_v2_service.order_service.uri }
-      env { name = "PAYMENT_SERVICE_URL";  value = google_cloud_run_v2_service.payment_service.uri }
-      env { name = "FRONTEND_ORIGIN";      value = "" }
+      env {
+        name  = "AUTH_SERVICE_URL"
+        value = google_cloud_run_v2_service.auth_service.uri
+      }
+      env {
+        name  = "CUSTOMER_SERVICE_URL"
+        value = google_cloud_run_v2_service.customer_service.uri
+      }
+      env {
+        name  = "ORDER_SERVICE_URL"
+        value = google_cloud_run_v2_service.order_service.uri
+      }
+      env {
+        name  = "PAYMENT_SERVICE_URL"
+        value = google_cloud_run_v2_service.payment_service.uri
+      }
+      env {
+        name  = "FRONTEND_ORIGIN"
+        value = ""
+      }
     }
   }
 
@@ -449,12 +561,22 @@ resource "google_cloud_run_v2_service" "frontend" {
     containers {
       image = "${local.image_base}/frontend:${var.image_tag}"
 
-      ports { container_port = 80 }
+      ports {
+        container_port = 80
+      }
 
-      resources { limits = { cpu = "1", memory = "256Mi" } }
+      resources {
+        limits = {
+          cpu    = "1"
+          memory = "256Mi"
+        }
+      }
 
       # nginx substitutes this at container startup via envsubst (nginx.gcp.conf)
-      env { name = "GATEWAY_URL"; value = google_cloud_run_v2_service.gateway.uri }
+      env {
+        name  = "GATEWAY_URL"
+        value = google_cloud_run_v2_service.gateway.uri
+      }
     }
   }
 
