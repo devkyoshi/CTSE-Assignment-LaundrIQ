@@ -58,6 +58,14 @@ resource "google_cloud_run_v2_service" "auth_service" {
         value = "default"
       }
       env {
+        name  = "SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE"
+        value = "2"
+      }
+      env {
+        name  = "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE"
+        value = "1"
+      }
+      env {
         name  = "DB_URL"
         value = "${local.db_base}/authdb"
       }
@@ -162,6 +170,14 @@ resource "google_cloud_run_v2_service" "customer_service" {
         value = "default"
       }
       env {
+        name  = "SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE"
+        value = "2"
+      }
+      env {
+        name  = "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE"
+        value = "1"
+      }
+      env {
         name  = "DB_URL"
         value = "${local.db_base}/customer_db"
       }
@@ -210,7 +226,8 @@ resource "google_cloud_run_v2_service" "customer_service_grpc" {
     }
 
     scaling {
-      min_instance_count = 0
+      # Keep one instance warm so order-service can always connect to gRPC on startup
+      min_instance_count = 1
       max_instance_count = 3
     }
 
@@ -242,6 +259,14 @@ resource "google_cloud_run_v2_service" "customer_service_grpc" {
       env {
         name  = "SPRING_PROFILES_ACTIVE"
         value = "default"
+      }
+      env {
+        name  = "SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE"
+        value = "2"
+      }
+      env {
+        name  = "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE"
+        value = "1"
       }
       env {
         name  = "DB_URL"
@@ -320,6 +345,14 @@ resource "google_cloud_run_v2_service" "order_service" {
       env {
         name  = "SPRING_PROFILES_ACTIVE"
         value = "default"
+      }
+      env {
+        name  = "SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE"
+        value = "2"
+      }
+      env {
+        name  = "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE"
+        value = "1"
       }
       env {
         name  = "DB_URL"
@@ -408,6 +441,14 @@ resource "google_cloud_run_v2_service" "payment_service" {
       env {
         name  = "SPRING_PROFILES_ACTIVE"
         value = "default"
+      }
+      env {
+        name  = "SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE"
+        value = "2"
+      }
+      env {
+        name  = "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE"
+        value = "1"
       }
       env {
         name  = "DB_URL"
