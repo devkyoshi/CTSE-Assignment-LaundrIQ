@@ -226,13 +226,20 @@ jobs:
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/frontend:latest \
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/frontend:${{ github.sha }}
 
-  # ── Deploy new image tags to Cloud Run via Terraform ──────────────────────
-  # Runs only when build-and-push succeeded (skipped when no app code changed).
+  # ── Deploy to Cloud Run via Terraform ────────────────────────────────────
+  # Always runs on every push to main UNLESS build-and-push explicitly failed.
+  # This ensures terraform changes (cloud_run.tf, workflow edits, etc.) are
+  # always applied even when no app code changed.
+  #
+  # image_tag logic:
+  #   - build-and-push ran   → use commit SHA (images just pushed)
+  #   - build-and-push skipped → use "latest" (terraform config changed only;
+  #                               Cloud Run keeps the existing image)
   deploy:
     name: Terraform Deploy
     runs-on: ubuntu-latest
     needs: [changes, build-and-push]
-    if: always() && needs.build-and-push.result == 'success'
+    if: always() && needs.build-and-push.result != 'failure'
 
     defaults:
       run:
@@ -257,4 +264,4 @@ jobs:
           terraform apply -auto-approve \
             -var="project_id=${{ env.PROJECT_ID }}" \
             -var="region=${{ env.REGION }}" \
-            -var="image_tag=${{ github.sha }}"
+            -var="image_tag=${{ needs.build-and-push.result == 'success' && github.sha || 'latest' }}"
