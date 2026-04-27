@@ -10,13 +10,67 @@ env:
   AR_REPO:    laundriq
 
 jobs:
-  # ────────────────────────────────────────────────────────────────────────────
-  # Build every Docker image and push to Artifact Registry.
-  # The AR and all GCP infrastructure must already exist (run infra/ locally).
-  # ────────────────────────────────────────────────────────────────────────────
+  # ── Detect which paths changed ─────────────────────────────────────────────
+  # any-app controls whether build-and-push runs at all.
+  # Per-service flags control whether each image is rebuilt or just re-tagged.
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      auth-service:     ${{ steps.filter.outputs.auth-service }}
+      customer-service: ${{ steps.filter.outputs.customer-service }}
+      order-service:    ${{ steps.filter.outputs.order-service }}
+      payment-service:  ${{ steps.filter.outputs.payment-service }}
+      gateway:          ${{ steps.filter.outputs.gateway }}
+      frontend:         ${{ steps.filter.outputs.frontend }}
+      any-app:          ${{ steps.filter.outputs.any-app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            auth-service:
+              - 'backend/auth-service/**'
+              - 'backend/common/**'
+              - 'backend/grpc-lib/**'
+              - 'backend/pom.xml'
+            customer-service:
+              - 'backend/customer-service/**'
+              - 'backend/common/**'
+              - 'backend/grpc-lib/**'
+              - 'backend/pom.xml'
+            order-service:
+              - 'backend/order-service/**'
+              - 'backend/common/**'
+              - 'backend/grpc-lib/**'
+              - 'backend/pom.xml'
+            payment-service:
+              - 'backend/payment-service/**'
+              - 'backend/common/**'
+              - 'backend/grpc-lib/**'
+              - 'backend/pom.xml'
+            gateway:
+              - 'backend/gateway/**'
+              - 'backend/common/**'
+              - 'backend/pom.xml'
+            frontend:
+              - 'frontend/**'
+            any-app:
+              - 'backend/**'
+              - 'frontend/**'
+
+  # ── Build changed images; re-tag unchanged ones ────────────────────────────
+  # Skipped entirely when only infra/ files changed.
+  #
+  # Unchanged services are re-tagged :latest → :<sha> in Artifact Registry.
+  # This is instant (no layer push) and gives Terraform a consistent image_tag
+  # to use across all services on every deploy.
   build-and-push:
     name: Build & Push Images
     runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.any-app == 'true'
 
     steps:
       - uses: actions/checkout@v4
@@ -35,9 +89,10 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      # ── Backend services (share the Maven layer cache) ────────────────────
+      # ── auth-service ───────────────────────────────────────────────────────
 
       - name: Build & push auth-service
+        if: needs.changes.outputs.auth-service == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -49,7 +104,17 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to:   type=gha,mode=max,scope=backend
 
+      - name: Re-tag auth-service (unchanged)
+        if: needs.changes.outputs.auth-service == 'false'
+        run: |
+          gcloud artifacts docker tags add \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/auth-service:latest \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/auth-service:${{ github.sha }}
+
+      # ── customer-service ───────────────────────────────────────────────────
+
       - name: Build & push customer-service
+        if: needs.changes.outputs.customer-service == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -61,7 +126,17 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to:   type=gha,mode=max,scope=backend
 
+      - name: Re-tag customer-service (unchanged)
+        if: needs.changes.outputs.customer-service == 'false'
+        run: |
+          gcloud artifacts docker tags add \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/customer-service:latest \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/customer-service:${{ github.sha }}
+
+      # ── order-service ──────────────────────────────────────────────────────
+
       - name: Build & push order-service
+        if: needs.changes.outputs.order-service == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -73,7 +148,17 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to:   type=gha,mode=max,scope=backend
 
+      - name: Re-tag order-service (unchanged)
+        if: needs.changes.outputs.order-service == 'false'
+        run: |
+          gcloud artifacts docker tags add \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/order-service:latest \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/order-service:${{ github.sha }}
+
+      # ── payment-service ────────────────────────────────────────────────────
+
       - name: Build & push payment-service
+        if: needs.changes.outputs.payment-service == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -85,7 +170,17 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to:   type=gha,mode=max,scope=backend
 
+      - name: Re-tag payment-service (unchanged)
+        if: needs.changes.outputs.payment-service == 'false'
+        run: |
+          gcloud artifacts docker tags add \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/payment-service:latest \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/payment-service:${{ github.sha }}
+
+      # ── gateway ────────────────────────────────────────────────────────────
+
       - name: Build & push gateway
+        if: needs.changes.outputs.gateway == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -97,9 +192,17 @@ jobs:
           cache-from: type=gha,scope=backend
           cache-to:   type=gha,mode=max,scope=backend
 
-      # ── Frontend ──────────────────────────────────────────────────────────
+      - name: Re-tag gateway (unchanged)
+        if: needs.changes.outputs.gateway == 'false'
+        run: |
+          gcloud artifacts docker tags add \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/gateway:latest \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/gateway:${{ github.sha }}
+
+      # ── frontend ───────────────────────────────────────────────────────────
 
       - name: Build & push frontend
+        if: needs.changes.outputs.frontend == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
@@ -115,15 +218,20 @@ jobs:
           cache-from: type=gha,scope=frontend
           cache-to:   type=gha,mode=max,scope=frontend
 
-  # ────────────────────────────────────────────────────────────────────────────
-  # Deploy the new image tag to Cloud Run via Terraform.
-  # Only touches Cloud Run services — all other GCP resources are managed
-  # by infra/ and are not affected by this step.
-  # ────────────────────────────────────────────────────────────────────────────
+      - name: Re-tag frontend (unchanged)
+        if: needs.changes.outputs.frontend == 'false'
+        run: |
+          gcloud artifacts docker tags add \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/frontend:latest \
+            ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/frontend:${{ github.sha }}
+
+  # ── Deploy new image tags to Cloud Run via Terraform ──────────────────────
+  # Runs only when build-and-push succeeded (skipped when no app code changed).
   deploy:
     name: Terraform Deploy
     runs-on: ubuntu-latest
-    needs: build-and-push
+    needs: [changes, build-and-push]
+    if: always() && needs.build-and-push.result == 'success'
 
     defaults:
       run:

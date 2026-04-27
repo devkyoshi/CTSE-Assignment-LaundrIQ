@@ -1,7 +1,9 @@
 # ── Shared locals ─────────────────────────────────────────────────────────────
 
 locals {
+  # connectTimeout=10 — fail fast (seconds) if DB is unreachable instead of hanging
   db_base   = "jdbc:postgresql://${data.google_sql_database_instance.postgres.private_ip_address}:5432"
+  db_opts   = "?sslmode=disable&connectTimeout=10&socketTimeout=30"
   db_user   = "ctse"
   run_sa    = data.google_service_account.cloud_run_sa.email
   connector = data.google_vpc_access_connector.connector.id
@@ -45,9 +47,9 @@ resource "google_cloud_run_v2_service" "auth_service" {
       }
 
       startup_probe {
-        initial_delay_seconds = 30
+        initial_delay_seconds = 10
         period_seconds        = 10
-        failure_threshold     = 9
+        failure_threshold     = 18
         tcp_socket {
           port = 8084
         }
@@ -63,11 +65,11 @@ resource "google_cloud_run_v2_service" "auth_service" {
       }
       env {
         name  = "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE"
-        value = "1"
+        value = "0"
       }
       env {
         name  = "DB_URL"
-        value = "${local.db_base}/authdb"
+        value = "${local.db_base}/authdb${local.db_opts}"
       }
       env {
         name  = "DB_USERNAME"
@@ -157,9 +159,9 @@ resource "google_cloud_run_v2_service" "customer_service" {
       }
 
       startup_probe {
-        initial_delay_seconds = 30
+        initial_delay_seconds = 10
         period_seconds        = 10
-        failure_threshold     = 9
+        failure_threshold     = 18
         tcp_socket {
           port = 8086
         }
@@ -175,11 +177,11 @@ resource "google_cloud_run_v2_service" "customer_service" {
       }
       env {
         name  = "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE"
-        value = "1"
+        value = "0"
       }
       env {
         name  = "DB_URL"
-        value = "${local.db_base}/customer_db"
+        value = "${local.db_base}/customer_db${local.db_opts}"
       }
       env {
         name  = "DB_USERNAME"
@@ -248,9 +250,9 @@ resource "google_cloud_run_v2_service" "customer_service_grpc" {
       }
 
       startup_probe {
-        initial_delay_seconds = 30
+        initial_delay_seconds = 10
         period_seconds        = 10
-        failure_threshold     = 9
+        failure_threshold     = 18
         tcp_socket {
           port = 9096
         }
@@ -266,11 +268,11 @@ resource "google_cloud_run_v2_service" "customer_service_grpc" {
       }
       env {
         name  = "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE"
-        value = "1"
+        value = "0"
       }
       env {
         name  = "DB_URL"
-        value = "${local.db_base}/customer_db"
+        value = "${local.db_base}/customer_db${local.db_opts}"
       }
       env {
         name  = "DB_USERNAME"
@@ -334,9 +336,9 @@ resource "google_cloud_run_v2_service" "order_service" {
       }
 
       startup_probe {
-        initial_delay_seconds = 30
+        initial_delay_seconds = 10
         period_seconds        = 10
-        failure_threshold     = 9
+        failure_threshold     = 18
         tcp_socket {
           port = 8082
         }
@@ -352,11 +354,11 @@ resource "google_cloud_run_v2_service" "order_service" {
       }
       env {
         name  = "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE"
-        value = "1"
+        value = "0"
       }
       env {
         name  = "DB_URL"
-        value = "${local.db_base}/orderdb"
+        value = "${local.db_base}/orderdb${local.db_opts}"
       }
       env {
         name  = "DB_USERNAME"
@@ -430,9 +432,9 @@ resource "google_cloud_run_v2_service" "payment_service" {
       }
 
       startup_probe {
-        initial_delay_seconds = 30
+        initial_delay_seconds = 10
         period_seconds        = 10
-        failure_threshold     = 9
+        failure_threshold     = 18
         tcp_socket {
           port = 8083
         }
@@ -448,11 +450,11 @@ resource "google_cloud_run_v2_service" "payment_service" {
       }
       env {
         name  = "SPRING_DATASOURCE_HIKARI_MINIMUM_IDLE"
-        value = "1"
+        value = "0"
       }
       env {
         name  = "DB_URL"
-        value = "${local.db_base}/paymentdb"
+        value = "${local.db_base}/paymentdb${local.db_opts}"
       }
       env {
         name  = "DB_USERNAME"
@@ -535,9 +537,9 @@ resource "google_cloud_run_v2_service" "gateway" {
       }
 
       startup_probe {
-        initial_delay_seconds = 20
+        initial_delay_seconds = 10
         period_seconds        = 10
-        failure_threshold     = 6
+        failure_threshold     = 18
         tcp_socket {
           port = 8080
         }
