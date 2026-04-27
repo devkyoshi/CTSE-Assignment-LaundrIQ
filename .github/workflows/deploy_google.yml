@@ -59,6 +59,7 @@ jobs:
             any-app:
               - 'backend/**'
               - 'frontend/**'
+              - 'infra/google/deploy/**'
 
   # ── Build changed images; re-tag unchanged ones ────────────────────────────
   # Skipped entirely when only infra/ files changed.
