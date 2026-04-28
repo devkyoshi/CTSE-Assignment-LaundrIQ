@@ -119,7 +119,7 @@ resource "google_cloud_run_v2_service_iam_member" "auth_service_invoker" {
   location = var.region
   name     = google_cloud_run_v2_service.auth_service.name
   role     = "roles/run.invoker"
-  member   = "allUsers"
+  member   = "serviceAccount:${local.run_sa}"
 }
 
 # ── Customer Service — HTTP (used by gateway) ─────────────────────────────────
@@ -205,7 +205,7 @@ resource "google_cloud_run_v2_service_iam_member" "customer_service_invoker" {
   location = var.region
   name     = google_cloud_run_v2_service.customer_service.name
   role     = "roles/run.invoker"
-  member   = "allUsers"
+  member   = "serviceAccount:${local.run_sa}"
 }
 
 # ── Customer Service — gRPC (used by order-service inter-service calls) ────────
@@ -296,7 +296,7 @@ resource "google_cloud_run_v2_service_iam_member" "customer_service_grpc_invoker
   location = var.region
   name     = google_cloud_run_v2_service.customer_service_grpc.name
   role     = "roles/run.invoker"
-  member   = "allUsers"
+  member   = "serviceAccount:${local.run_sa}"
 }
 
 # ── Order Service ─────────────────────────────────────────────────────────────
@@ -392,7 +392,7 @@ resource "google_cloud_run_v2_service_iam_member" "order_service_invoker" {
   location = var.region
   name     = google_cloud_run_v2_service.order_service.name
   role     = "roles/run.invoker"
-  member   = "allUsers"
+  member   = "serviceAccount:${local.run_sa}"
 }
 
 # ── Payment Service ───────────────────────────────────────────────────────────
@@ -502,7 +502,7 @@ resource "google_cloud_run_v2_service_iam_member" "payment_service_invoker" {
   location = var.region
   name     = google_cloud_run_v2_service.payment_service.name
   role     = "roles/run.invoker"
-  member   = "allUsers"
+  member   = "serviceAccount:${local.run_sa}"
 }
 
 # ── API Gateway (public) ──────────────────────────────────────────────────────
