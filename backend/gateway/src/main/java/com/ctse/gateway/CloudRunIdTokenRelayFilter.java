@@ -76,7 +76,7 @@ public class CloudRunIdTokenRelayFilter implements GlobalFilter {
     }
 
     private String audienceFor(URI target) {
-        return target.getScheme() + "://" + target.getAuthority();
+        return target.getScheme() + "://" + target.getHost();
     }
 
     private Instant parseExpiry(String jwt) {
