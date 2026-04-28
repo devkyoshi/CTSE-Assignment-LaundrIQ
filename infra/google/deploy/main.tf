@@ -20,6 +20,10 @@ provider "google" {
   region  = var.region
 }
 
+data "google_project" "current" {
+  project_id = var.project_id
+}
+
 locals {
   name_prefix = "laundriq"
   ar_hostname = "${var.region}-docker.pkg.dev"

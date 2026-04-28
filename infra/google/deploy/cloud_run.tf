@@ -547,19 +547,19 @@ resource "google_cloud_run_v2_service" "gateway" {
 
       env {
         name  = "AUTH_SERVICE_URL"
-        value = google_cloud_run_v2_service.auth_service.uri
+        value = "https://${google_cloud_run_v2_service.auth_service.name}-${data.google_project.current.number}.${var.region}.run.app"
       }
       env {
         name  = "CUSTOMER_SERVICE_URL"
-        value = google_cloud_run_v2_service.customer_service.uri
+        value = "https://${google_cloud_run_v2_service.customer_service.name}-${data.google_project.current.number}.${var.region}.run.app"
       }
       env {
         name  = "ORDER_SERVICE_URL"
-        value = google_cloud_run_v2_service.order_service.uri
+        value = "https://${google_cloud_run_v2_service.order_service.name}-${data.google_project.current.number}.${var.region}.run.app"
       }
       env {
         name  = "PAYMENT_SERVICE_URL"
-        value = google_cloud_run_v2_service.payment_service.uri
+        value = "https://${google_cloud_run_v2_service.payment_service.name}-${data.google_project.current.number}.${var.region}.run.app"
       }
       env {
         name  = "FRONTEND_ORIGIN"
