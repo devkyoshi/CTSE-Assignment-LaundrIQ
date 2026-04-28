@@ -28,7 +28,7 @@ resource "google_cloud_run_v2_service" "auth_service" {
     }
 
     scaling {
-      min_instance_count = 0
+      min_instance_count = 1
       max_instance_count = 3
     }
 
@@ -215,7 +215,7 @@ resource "google_cloud_run_v2_service_iam_member" "customer_service_invoker" {
 resource "google_cloud_run_v2_service" "customer_service_grpc" {
   name     = "customer-service-grpc"
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_ALL"
+  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
 
   deletion_protection = false
 
@@ -516,14 +516,6 @@ resource "google_cloud_run_v2_service" "gateway" {
 
   template {
     service_account = local.run_sa
-
-    # Route ALL egress through VPC so that requests to backend Cloud Run services
-    # (which have INGRESS_TRAFFIC_INTERNAL_ONLY) are treated as internal traffic.
-    # The gateway makes no external internet calls, so no Cloud NAT is required.
-    vpc_access {
-      connector = local.connector
-      egress    = "ALL_TRAFFIC"
-    }
 
     scaling {
       min_instance_count = 0
