@@ -6,6 +6,9 @@ spring:
     name: gateway
   cloud:
     gateway:
+      default-filters:
+        # Cloud Run routes by Host; let the HTTP client set the downstream service host.
+        - RemoveRequestHeader=Host
       globalcors:
         corsConfigurations:
           '[/**]':
