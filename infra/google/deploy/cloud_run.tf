@@ -15,7 +15,7 @@ locals {
 resource "google_cloud_run_v2_service" "auth_service" {
   name     = "auth-service"
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  ingress  = "INGRESS_TRAFFIC_ALL"
 
   deletion_protection = false
 
@@ -127,7 +127,7 @@ resource "google_cloud_run_v2_service_iam_member" "auth_service_invoker" {
 resource "google_cloud_run_v2_service" "customer_service" {
   name     = "customer-service"
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  ingress  = "INGRESS_TRAFFIC_ALL"
 
   deletion_protection = false
 
@@ -215,7 +215,7 @@ resource "google_cloud_run_v2_service_iam_member" "customer_service_invoker" {
 resource "google_cloud_run_v2_service" "customer_service_grpc" {
   name     = "customer-service-grpc"
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  ingress  = "INGRESS_TRAFFIC_ALL"
 
   deletion_protection = false
 
@@ -304,7 +304,7 @@ resource "google_cloud_run_v2_service_iam_member" "customer_service_grpc_invoker
 resource "google_cloud_run_v2_service" "order_service" {
   name     = "order-service"
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  ingress  = "INGRESS_TRAFFIC_ALL"
 
   deletion_protection = false
 
@@ -400,7 +400,7 @@ resource "google_cloud_run_v2_service_iam_member" "order_service_invoker" {
 resource "google_cloud_run_v2_service" "payment_service" {
   name     = "payment-service"
   location = var.region
-  ingress  = "INGRESS_TRAFFIC_INTERNAL_ONLY"
+  ingress  = "INGRESS_TRAFFIC_ALL"
 
   deletion_protection = false
 
