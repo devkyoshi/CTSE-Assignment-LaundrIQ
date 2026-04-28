@@ -20,27 +20,27 @@ export interface ProfileUpdateRequest {
 
 export const authService = {
   login: async (username: string, password: string) => {
-    const res = await api.post<ApiResponse<LoginData>>("/api/auth/login", { username, password });
+    const res = await api.post<ApiResponse<LoginData>>("/auth/login", { username, password });
     return res.data;
   },
   register: async (username: string, email: string, password: string) => {
-    const res = await api.post<ApiResponse<LoginData>>("/api/auth/register", { username, email, password });
+    const res = await api.post<ApiResponse<LoginData>>("/auth/register", { username, email, password });
     return res.data;
   },
   me: async () => {
-    const res = await api.get<ApiResponse<AuthUser>>("/api/auth/me");
+    const res = await api.get<ApiResponse<AuthUser>>("/auth/me");
     return res.data;
   },
   getProfile: async () => {
-    const res = await api.get<ApiResponse<UserProfile>>("/api/auth/me");
+    const res = await api.get<ApiResponse<UserProfile>>("/auth/me");
     return res.data;
   },
   updateProfile: async (profileData: ProfileUpdateRequest) => {
-    const res = await api.put<ApiResponse<UserProfile>>("/api/auth/me", profileData);
+    const res = await api.put<ApiResponse<UserProfile>>("/auth/me", profileData);
     return res.data;
   },
   deleteAccount: async (password: string) => {
-    const res = await api.delete<ApiResponse<null>>("/api/auth/me", {
+    const res = await api.delete<ApiResponse<null>>("/auth/me", {
       params: { password }
     });
     return res.data;

@@ -56,32 +56,32 @@ export const feedbackService = {
             ...data,
             customerId: customerId
         };
-        const response = await api.post(`/api/customers/${customerId}/feedback`, requestData);        return response.data.data;
+        const response = await api.post(`/customers/${customerId}/feedback`, requestData);        return response.data.data;
     },
 
     getFeedbackHistory: async (customerId: string, page: number = 0, size: number = 10): Promise<PageResponse<FeedbackSummary>> => {
-        const response = await api.get(`/api/customers/${customerId}/feedback`, {
+        const response = await api.get(`/customers/${customerId}/feedback`, {
             params: { page, size }
         });
         return response.data.data;
     },
 
     getFeedback: async (customerId: string, feedbackId: number): Promise<Feedback> => {
-        const response = await api.get(`/api/customers/${customerId}/feedback/${feedbackId}`);
+        const response = await api.get(`/customers/${customerId}/feedback/${feedbackId}`);
         return response.data.data;
     },
 
     updateFeedback: async (customerId: string, feedbackId: number, data: FeedbackUpdateRequest): Promise<Feedback> => {
-        const response = await api.patch(`/api/customers/${customerId}/feedback/${feedbackId}`, data);
+        const response = await api.patch(`/customers/${customerId}/feedback/${feedbackId}`, data);
         return response.data.data;
     },
 
     deleteFeedback: async (customerId: string, feedbackId: number): Promise<void> => {
-        await api.delete(`/api/customers/${customerId}/feedback/${feedbackId}`);
+        await api.delete(`/customers/${customerId}/feedback/${feedbackId}`);
     },
 
     getAverageRating: async (customerId: string): Promise<number> => {
-        const response = await api.get(`/api/customers/${customerId}/feedback/average-rating`);
+        const response = await api.get(`/customers/${customerId}/feedback/average-rating`);
         return response.data.data.averageRating;
     }
 };

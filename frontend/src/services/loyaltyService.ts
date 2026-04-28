@@ -47,29 +47,29 @@ export interface PageResponse<T> {
 
 export const loyaltyService = {
     getAccount: async (customerId: string): Promise<LoyaltyAccount> => {
-        const response = await api.get(`/api/customers/${customerId}/loyalty`);
+        const response = await api.get(`/customers/${customerId}/loyalty`);
         return response.data.data;
     },
 
     createAccount: async (customerId: string): Promise<LoyaltyAccount> => {
-        const response = await api.post(`/api/customers/${customerId}/loyalty/init`);
+        const response = await api.post(`/customers/${customerId}/loyalty/init`);
         return response.data.data;
     },
 
     getTransactions: async (customerId: string, page: number = 0, size: number = 10): Promise<PageResponse<LoyaltyTransaction>> => {
-        const response = await api.get(`/api/customers/${customerId}/loyalty/transactions`, {
+        const response = await api.get(`/customers/${customerId}/loyalty/transactions`, {
             params: { page, size }
         });
         return response.data.data;
     },
 
     earnPoints: async (customerId: string, data: Omit<EarnPointsRequest, 'customerId'>): Promise<LoyaltyAccount> => {
-        const response = await api.post(`/api/customers/${customerId}/loyalty/earn`, data);
+        const response = await api.post(`/customers/${customerId}/loyalty/earn`, data);
         return response.data.data;
     },
 
     redeemPoints: async (customerId: string, data: Omit<RedeemPointsRequest, 'customerId'>): Promise<LoyaltyAccount> => {
-        const response = await api.post(`/api/customers/${customerId}/loyalty/redeem`, data);
+        const response = await api.post(`/customers/${customerId}/loyalty/redeem`, data);
         return response.data.data;
     }
 };

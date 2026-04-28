@@ -72,22 +72,22 @@ class OrderService {
       totalPrice: options.totalPrice
     };
 
-    const res = await api.post("/api/orders", payload);
+    const res = await api.post("/orders", payload);
     return unwrap(res);
   }
 
   async getOrderById(orderId: string | number): Promise<Order | null> {
-    const res = await api.get(`/api/orders/${orderId}`);
+    const res = await api.get(`/orders/${orderId}`);
     return unwrap(res);
   }
 
   async getOrdersByCustomer(customerId: string): Promise<Order[]> {
-    const res = await api.get(`/api/orders/customer/${customerId}`);
+    const res = await api.get(`/orders/customer/${customerId}`);
     return unwrap(res);
   }
 
   async getAllOrders(): Promise<Order[]> {
-    const res = await api.get("/api/orders");
+    const res = await api.get("/orders");
     return unwrap(res);
   }
 
@@ -97,7 +97,7 @@ class OrderService {
     // Use PUT internally (simulated via patch or full update if needed)
     // For simplicity, we assume we just do a full update since our backend expects the whole object
     const updatePayload = { ...order, pickupSlot: timeSlot };
-    const res = await api.put(`/api/orders/${orderId}`, updatePayload);
+    const res = await api.put(`/orders/${orderId}`, updatePayload);
     return unwrap(res);
   }
 
@@ -105,17 +105,17 @@ class OrderService {
     const order = await this.getOrderById(orderId);
     if (!order) throw new Error("Order not found");
     const updatePayload = { ...order, deliverySlot: timeSlot };
-    const res = await api.put(`/api/orders/${orderId}`, updatePayload);
+    const res = await api.put(`/orders/${orderId}`, updatePayload);
     return unwrap(res);
   }
 
   async updateOrderStatus(orderId: string | number, status: OrderStatus): Promise<Order> {
-    const res = await api.patch(`/api/orders/${orderId}/status`, { status });
+    const res = await api.patch(`/orders/${orderId}/status`, { status });
     return unwrap(res);
   }
 
   async cancelOrder(orderId: string | number): Promise<Order> {
-    const res = await api.patch(`/api/orders/${orderId}/status`, { status: 'CANCELLED' });
+    const res = await api.patch(`/orders/${orderId}/status`, { status: 'CANCELLED' });
     return unwrap(res);
   }
 
@@ -127,12 +127,12 @@ class OrderService {
 
   // Pricing configuration
   async getPricingRules(): Promise<Record<string, number>> {
-    const res = await api.get("/api/orders/pricing");
+    const res = await api.get("/orders/pricing");
     return unwrap(res);
   }
 
   async updatePricingRules(rules: Record<string, number>): Promise<Record<string, number>> {
-    const res = await api.put("/api/orders/pricing", rules);
+    const res = await api.put("/orders/pricing", rules);
     return unwrap(res);
   }
 }
