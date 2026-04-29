@@ -65,6 +65,13 @@ public class OrderController {
         return ResponseEntity.ok(ApiResponse.success("Order status updated successfully", updatedOrder));
     }
 
+    @PutMapping("/{id}/status")
+    public ResponseEntity<ApiResponse<OrderResponse>> updateOrderStatusPut(@PathVariable Long id, @Valid @RequestBody UpdateOrderStatusRequest request) {
+        log.info("Received request to update status (PUT) for order id: {}", id);
+        OrderResponse updatedOrder = orderService.updateStatus(id, request);
+        return ResponseEntity.ok(ApiResponse.success("Order status updated successfully", updatedOrder));
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<ApiResponse<Void>> deleteOrder(@PathVariable Long id) {
         log.info("Received request to delete order id: {}", id);

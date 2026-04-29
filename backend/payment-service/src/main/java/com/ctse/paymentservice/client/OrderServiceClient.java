@@ -6,12 +6,16 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @Component
@@ -49,6 +53,11 @@ public class OrderServiceClient {
             info.setCustomerId((String) data.get("customerId"));
             info.setTotalPrice(((Number) data.get("totalPrice")).doubleValue());
             info.setStatus((String) data.get("status"));
+            @SuppressWarnings("unchecked")
+            Map<String, Object> pickupSlot = (Map<String, Object>) data.get("pickupSlot");
+            if (pickupSlot != null) {
+                info.setPickupDate((String) pickupSlot.get("date"));
+            }
             return info;
         } catch (HttpClientErrorException.NotFound e) {
             throw new ResourceNotFoundException("Order not found: " + orderId);
@@ -62,9 +71,16 @@ public class OrderServiceClient {
 
     public void updateOrderStatus(Long orderId, String status) {
         try {
-            restTemplate.patchForObject(
-                    orderServiceBaseUrl + "/api/orders/" + orderId + "/status?status=" + status,
-                    null,
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_JSON);
+
+            Map<String, String> payload = new HashMap<>();
+            payload.put("status", status);
+
+            restTemplate.exchange(
+                    orderServiceBaseUrl + "/api/orders/" + orderId + "/status",
+                    HttpMethod.PUT,
+                    new HttpEntity<>(payload, headers),
                     Object.class
             );
         } catch (Exception e) {

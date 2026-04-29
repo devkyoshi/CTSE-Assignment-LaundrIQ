@@ -35,6 +35,7 @@ function CheckoutForm({ order, orderId }: { order: Order; orderId: string }) {
 
   const [paymentMethod, setPaymentMethod] = useState("CREDIT_CARD");
   const [submitting, setSubmitting] = useState(false);
+  const parsedOrderId = Number(orderId);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,9 +46,14 @@ function CheckoutForm({ order, orderId }: { order: Order; orderId: string }) {
 
     setSubmitting(true);
     try {
+      if (!Number.isFinite(parsedOrderId) || parsedOrderId <= 0) {
+        toast.error("Invalid order ID for payment");
+        return;
+      }
+
       // Step 1: Create payment on backend (gets Stripe client secret)
       const payment: Payment = await paymentService.createPayment({
-        orderId: Number(orderId),
+        orderId: parsedOrderId,
         paymentMethod,
         customerId: user.id,
       });
@@ -160,21 +166,24 @@ function CheckoutForm({ order, orderId }: { order: Order; orderId: string }) {
 export default function MakePaymentPage() {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get("orderId") || "";
+  const parsedOrderId = Number(orderId);
+  const hasValidOrderId = Number.isFinite(parsedOrderId) && parsedOrderId > 0;
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!orderId) {
+    if (!hasValidOrderId) {
+      toast.error("Invalid order ID");
       setLoading(false);
       return;
     }
     orderService
-      .getOrderById(orderId)
+      .getOrderById(parsedOrderId)
       .then(setOrder)
       .catch(() => toast.error("Failed to fetch order details"))
       .finally(() => setLoading(false));
-  }, [orderId]);
+  }, [hasValidOrderId, parsedOrderId]);
 
   if (loading)
     return (

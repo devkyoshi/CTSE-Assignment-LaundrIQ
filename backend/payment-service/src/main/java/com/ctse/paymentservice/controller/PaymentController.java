@@ -35,6 +35,12 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.success("Payment confirmed", payment));
     }
 
+    @PostMapping("/{id}/refund")
+    public ResponseEntity<ApiResponse<PaymentResponse>> refundPayment(@PathVariable Long id) {
+        PaymentResponse payment = paymentService.refundPayment(id);
+        return ResponseEntity.ok(ApiResponse.success("Payment refunded and order cancelled", payment));
+    }
+
     @GetMapping
     public ResponseEntity<ApiResponse<List<PaymentResponse>>> getAllPayments() {
         List<PaymentResponse> payments = paymentService.findAll();

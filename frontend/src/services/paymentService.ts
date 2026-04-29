@@ -28,4 +28,8 @@ export const paymentService = {
     const res = await api.post("/payments/confirm", request);
     return unwrap(res);
   },
+  refundPayment: async (id: number): Promise<Payment> => {
+    const res = await api.post(`/payments/${id}/refund`);
+    return unwrap(res);
+  },
 };

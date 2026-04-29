@@ -8,4 +8,5 @@ public class OrderInfo {
     private String customerId;
     private Double totalPrice;
     private String status;
+    private String pickupDate;
 }

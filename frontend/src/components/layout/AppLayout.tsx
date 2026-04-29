@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   Menu, X, LayoutDashboard, ShoppingBag,
   MapPin, User, LogOut, Settings, ChevronUp,
+  CreditCard,
   ChevronRight, MessageSquare, Gift
 } from "lucide-react";
 import {
@@ -27,6 +28,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Orders", href: "/orders", icon: ShoppingBag },
+    { name: "Payments", href: "/payments", icon: CreditCard },
     { name: "My Profile", href: "/profile", icon: User },
     { name: "Addresses", href: "/addresses", icon: MapPin },
     { name: "loyalty", href: "/loyalty", icon: Gift  },

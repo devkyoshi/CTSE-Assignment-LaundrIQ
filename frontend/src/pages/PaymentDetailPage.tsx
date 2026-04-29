@@ -14,14 +14,35 @@ export default function PaymentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refunding, setRefunding] = useState(false);
+  const parsedId = Number(id);
+  const hasValidId = Number.isFinite(parsedId) && parsedId > 0;
+
+  const handleRefund = async () => {
+    if (!payment || refunding) return;
+    setRefunding(true);
+    try {
+      const updated = await paymentService.refundPayment(payment.id);
+      setPayment(updated);
+      toast.success("Payment refunded and order cancelled");
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || "Refund not allowed for this order");
+    } finally {
+      setRefunding(false);
+    }
+  };
 
   useEffect(() => {
-    if (!id) return;
-    paymentService.getById(Number(id))
+    if (!hasValidId) {
+      toast.error("Invalid payment ID");
+      setLoading(false);
+      return;
+    }
+    paymentService.getById(parsedId)
       .then(setPayment)
       .catch(() => toast.error("Failed to load payment"))
       .finally(() => setLoading(false));
-  }, [id]);
+  }, [hasValidId, parsedId]);
 
   if (loading) {
     return <div className="space-y-4 max-w-2xl"><Skeleton className="h-8 w-48" /><Skeleton className="h-48 w-full" /></div>;
@@ -40,6 +61,16 @@ export default function PaymentDetailPage() {
       <Card>
         <CardHeader><CardTitle className="text-xl">Payment Details</CardTitle></CardHeader>
         <CardContent>
+          {payment.status === "COMPLETED" && (
+            <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3">
+              <p className="text-sm text-amber-800">
+                Refund is available only before the pickup date. Refunding will also cancel the order.
+              </p>
+              <Button className="mt-3" variant="destructive" onClick={handleRefund} disabled={refunding}>
+                {refunding ? "Processing refund..." : "Refund & Cancel Order"}
+              </Button>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div><span className="text-muted-foreground">Order ID</span><p className="mt-0.5"><Link to={`/orders/${payment.orderId}`} className="text-primary hover:underline font-medium">{payment.orderId}</Link></p></div>
             <div><span className="text-muted-foreground">Amount</span><p className="font-medium tabular-nums mt-0.5 text-primary text-lg">{formatCurrency(payment.amount)}</p></div>

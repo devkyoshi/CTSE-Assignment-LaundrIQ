@@ -9,6 +9,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.context.request.WebRequest;
@@ -64,6 +65,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity
                 .status(HttpStatus.BAD_REQUEST)
                 .body(ApiResponse.error("Constraint violation", errors));
+    }
+
+    @ExceptionHandler(MethodArgumentTypeMismatchException.class)
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleTypeMismatch(
+            MethodArgumentTypeMismatchException ex) {
+        String parameterName = ex.getName();
+        String expectedType = ex.getRequiredType() != null
+                ? ex.getRequiredType().getSimpleName()
+                : "the expected type";
+        Object providedValue = ex.getValue();
+
+        Map<String, String> errors = new HashMap<>();
+        errors.put(parameterName, String.format(
+                "Invalid value '%s'. Expected %s.",
+                providedValue,
+                expectedType
+        ));
+
+        log.warn("Type mismatch for parameter '{}': value='{}', expectedType={}",
+                parameterName, providedValue, expectedType);
+        return ResponseEntity
+                .status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("Invalid request parameter", errors));
     }
 
     // ── Fallback ──────────────────────────────────────────────────────────────

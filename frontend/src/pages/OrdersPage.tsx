@@ -92,6 +92,7 @@ export default function OrdersPage() {
                     <TableHead className="text-right">Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Created</TableHead>
+                    <TableHead className="text-right">Action</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -110,6 +111,15 @@ export default function OrdersPage() {
                       <TableCell className="text-right tabular-nums font-semibold">{formatCurrency(order.totalPrice)}</TableCell>
                       <TableCell><Badge variant={getOrderStatusVariant(order.status)}>{order.status}</Badge></TableCell>
                       <TableCell className="text-sm text-muted-foreground">{formatDate(order.createdAt)}</TableCell>
+                      <TableCell className="text-right">
+                        {order.status === "PENDING" ? (
+                          <Button asChild size="sm">
+                            <Link to={`/payments/create?orderId=${order.id}`}>Pay</Link>
+                          </Button>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
