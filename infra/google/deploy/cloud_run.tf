@@ -373,6 +373,14 @@ resource "google_cloud_run_v2_service" "order_service" {
         value = "443"
       }
       env {
+        name  = "GRPC_CLIENT_CUSTOMER_SERVICE_ADDRESS"
+        value = "static://${trimprefix(google_cloud_run_v2_service.customer_service_grpc.uri, "https://")}:443"
+      }
+      env {
+        name  = "GRPC_CLIENT_CUSTOMER_SERVICE_NEGOTIATIONTYPE"
+        value = "TLS"
+      }
+      env {
         name = "DB_PASSWORD"
         value_source {
           secret_key_ref {
