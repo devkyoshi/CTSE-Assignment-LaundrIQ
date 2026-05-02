@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { orderService, OrderItem } from "@/services/orderService";
+import { paymentService } from "@/services/paymentService";
 import { loyaltyService, LoyaltyAccount } from "@/services/loyaltyService";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +14,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/helpers";
 import { cn } from "@/lib/utils";
+import { PAYMENT_METHODS } from "@/types";
 
 const SERVICE_TYPES: ('STANDARD' | 'PREMIUM')[] = ['STANDARD', 'PREMIUM'];
 
@@ -51,6 +53,7 @@ export default function CreateOrderPage() {
 
   // Step 3: Confirmation
   const [processing, setProcessing] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState("CREDIT_CARD");
 
   const [rules, setRules] = useState<Record<string, number>>({});
 
@@ -105,11 +108,18 @@ export default function CreateOrderPage() {
       await orderService.assignPickupSlot(order.id, { date: pickupDate, time: pickupTime });
       await orderService.assignDeliverySlot(order.id, { date: deliveryDate, time: deliveryTime });
 
-      // 3. Redirect to payment page
+      // 3. Create initial payment (PENDING)
+      const payment = await paymentService.createPayment({
+        orderId: Number(order.id),
+        paymentMethod,
+        customerId: user.id,
+      });
+
+      // 4. Redirect to payment page
       toast.success("Order created! Redirecting to payment...");
-      navigate(`/payments/create?orderId=${order.id}`);
+      navigate(`/payments/create?orderId=${order.id}&paymentId=${payment.id}`);
     } catch (e: any) {
-      toast.error("Error creating order");
+      toast.error(e?.response?.data?.message || "Error creating order or payment");
     } finally {
       setProcessing(false);
     }
@@ -331,6 +341,22 @@ export default function CreateOrderPage() {
 
                 <div className="space-y-2 text-center">
                   <p className="text-sm text-muted-foreground">Your order will be created and you'll be redirected to the secure payment page powered by Stripe.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <Label>Payment Method</Label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select method" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PAYMENT_METHODS.map((method) => (
+                        <SelectItem key={method} value={method}>
+                          {method.replace(/_/g, " ")}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
 
                 <div className="pt-4">

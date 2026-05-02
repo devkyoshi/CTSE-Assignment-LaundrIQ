@@ -27,15 +27,15 @@ const CARD_ELEMENT_OPTIONS = {
   },
 };
 
-function CheckoutForm({ order, orderId }: { order: Order; orderId: string }) {
+function CheckoutForm({ order, orderId, payment }: { order: Order; orderId: string; payment: Payment }) {
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  const [paymentMethod, setPaymentMethod] = useState("CREDIT_CARD");
   const [submitting, setSubmitting] = useState(false);
   const parsedOrderId = Number(orderId);
+  const paymentMethod = payment.paymentMethod || "CREDIT_CARD";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,12 +51,14 @@ function CheckoutForm({ order, orderId }: { order: Order; orderId: string }) {
         return;
       }
 
-      // Step 1: Create payment on backend (gets Stripe client secret)
-      const payment: Payment = await paymentService.createPayment({
-        orderId: parsedOrderId,
-        paymentMethod,
-        customerId: user.id,
-      });
+      let currentPayment = payment;
+      if (paymentMethod !== "CASH_ON_DELIVERY" && !currentPayment.stripeClientSecret) {
+        currentPayment = await paymentService.createPayment({
+          orderId: parsedOrderId,
+          paymentMethod,
+          customerId: user.id,
+        });
+      }
 
       // Step 2: For card payments, confirm with Stripe
       if (paymentMethod !== "CASH_ON_DELIVERY") {
@@ -67,14 +69,14 @@ function CheckoutForm({ order, orderId }: { order: Order; orderId: string }) {
         }
 
         const cardElement = elements.getElement(CardElement);
-        if (!cardElement || !payment.stripeClientSecret) {
+        if (!cardElement || !currentPayment.stripeClientSecret) {
           toast.error("Card details are required");
           setSubmitting(false);
           return;
         }
 
         const { error, paymentIntent } = await stripe.confirmCardPayment(
-          payment.stripeClientSecret,
+          currentPayment.stripeClientSecret,
           { payment_method: { card: cardElement } }
         );
 
@@ -100,7 +102,7 @@ function CheckoutForm({ order, orderId }: { order: Order; orderId: string }) {
       } else {
         // Cash on delivery - payment stays PENDING
         toast.success("Order confirmed for cash on delivery");
-        navigate(`/payments/${payment.id}`);
+        navigate(`/payments/${currentPayment.id}`);
       }
     } catch (err: any) {
       toast.error(err?.response?.data?.message || err.message || "Failed to process payment");
@@ -123,7 +125,7 @@ function CheckoutForm({ order, orderId }: { order: Order; orderId: string }) {
       <div className="space-y-4 pt-2">
         <div className="space-y-2">
           <Label>Payment Method</Label>
-          <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+          <Select value={paymentMethod} disabled>
             <SelectTrigger>
               <SelectValue placeholder="Select method" />
             </SelectTrigger>
@@ -166,10 +168,14 @@ function CheckoutForm({ order, orderId }: { order: Order; orderId: string }) {
 export default function MakePaymentPage() {
   const [searchParams] = useSearchParams();
   const orderId = searchParams.get("orderId") || "";
+  const paymentId = searchParams.get("paymentId") || "";
   const parsedOrderId = Number(orderId);
+  const parsedPaymentId = Number(paymentId);
   const hasValidOrderId = Number.isFinite(parsedOrderId) && parsedOrderId > 0;
+  const hasValidPaymentId = Number.isFinite(parsedPaymentId) && parsedPaymentId > 0;
 
   const [order, setOrder] = useState<Order | null>(null);
+  const [payment, setPayment] = useState<Payment | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -178,12 +184,20 @@ export default function MakePaymentPage() {
       setLoading(false);
       return;
     }
-    orderService
-      .getOrderById(parsedOrderId)
-      .then(setOrder)
-      .catch(() => toast.error("Failed to fetch order details"))
+    setLoading(true);
+    const loadOrder = orderService.getOrderById(parsedOrderId);
+    const loadPayment = hasValidPaymentId
+      ? paymentService.getById(parsedPaymentId)
+      : paymentService.getByOrder(parsedOrderId);
+
+    Promise.all([loadOrder, loadPayment])
+      .then(([orderData, paymentData]) => {
+        setOrder(orderData);
+        setPayment(paymentData);
+      })
+      .catch(() => toast.error("Failed to fetch order or payment details"))
       .finally(() => setLoading(false));
-  }, [hasValidOrderId, parsedOrderId]);
+  }, [hasValidOrderId, hasValidPaymentId, parsedOrderId, parsedPaymentId]);
 
   if (loading)
     return (
@@ -193,10 +207,10 @@ export default function MakePaymentPage() {
       </div>
     );
 
-  if (!order)
+  if (!order || !payment)
     return (
       <div className="text-center py-12">
-        <p className="text-muted-foreground">Order not found</p>
+        <p className="text-muted-foreground">Order or payment not found</p>
       </div>
     );
 
@@ -212,7 +226,7 @@ export default function MakePaymentPage() {
         </CardHeader>
         <CardContent>
           <Elements stripe={stripePromise}>
-            <CheckoutForm order={order} orderId={orderId} />
+            <CheckoutForm order={order} orderId={orderId} payment={payment} />
           </Elements>
         </CardContent>
       </Card>
