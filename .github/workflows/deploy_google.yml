@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+    inputs:
+      force_rebuild:
+        description: "Rebuild and push all images before deploy"
+        type: boolean
+        default: false
 
 env:
   PROJECT_ID: ${{ secrets.GCP_PROJECT_ID }}
@@ -72,7 +77,10 @@ jobs:
     name: Build & Push Images
     runs-on: ubuntu-latest
     needs: changes
-    if: needs.changes.outputs.any-app == 'true'
+    if: needs.changes.outputs.any-app == 'true' || github.event_name == 'workflow_dispatch'
+
+    env:
+      FORCE_REBUILD: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.force_rebuild == 'true' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -94,7 +102,7 @@ jobs:
       # ── auth-service ───────────────────────────────────────────────────────
 
       - name: Build & push auth-service
-        if: needs.changes.outputs.auth-service == 'true'
+        if: needs.changes.outputs.auth-service == 'true' || env.FORCE_REBUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -107,7 +115,7 @@ jobs:
           cache-to:   type=gha,mode=max,scope=backend
 
       - name: Re-tag auth-service (unchanged)
-        if: needs.changes.outputs.auth-service == 'false'
+        if: needs.changes.outputs.auth-service == 'false' && env.FORCE_REBUILD != 'true'
         run: |
           gcloud artifacts docker tags add \
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/auth-service:latest \
@@ -116,7 +124,7 @@ jobs:
       # ── customer-service ───────────────────────────────────────────────────
 
       - name: Build & push customer-service
-        if: needs.changes.outputs.customer-service == 'true'
+        if: needs.changes.outputs.customer-service == 'true' || env.FORCE_REBUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -129,7 +137,7 @@ jobs:
           cache-to:   type=gha,mode=max,scope=backend
 
       - name: Re-tag customer-service (unchanged)
-        if: needs.changes.outputs.customer-service == 'false'
+        if: needs.changes.outputs.customer-service == 'false' && env.FORCE_REBUILD != 'true'
         run: |
           gcloud artifacts docker tags add \
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/customer-service:latest \
@@ -138,7 +146,7 @@ jobs:
       # ── order-service ──────────────────────────────────────────────────────
 
       - name: Build & push order-service
-        if: needs.changes.outputs.order-service == 'true'
+        if: needs.changes.outputs.order-service == 'true' || env.FORCE_REBUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -151,7 +159,7 @@ jobs:
           cache-to:   type=gha,mode=max,scope=backend
 
       - name: Re-tag order-service (unchanged)
-        if: needs.changes.outputs.order-service == 'false'
+        if: needs.changes.outputs.order-service == 'false' && env.FORCE_REBUILD != 'true'
         run: |
           gcloud artifacts docker tags add \
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/order-service:latest \
@@ -160,7 +168,7 @@ jobs:
       # ── payment-service ────────────────────────────────────────────────────
 
       - name: Build & push payment-service
-        if: needs.changes.outputs.payment-service == 'true'
+        if: needs.changes.outputs.payment-service == 'true' || env.FORCE_REBUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -173,7 +181,7 @@ jobs:
           cache-to:   type=gha,mode=max,scope=backend
 
       - name: Re-tag payment-service (unchanged)
-        if: needs.changes.outputs.payment-service == 'false'
+        if: needs.changes.outputs.payment-service == 'false' && env.FORCE_REBUILD != 'true'
         run: |
           gcloud artifacts docker tags add \
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/payment-service:latest \
@@ -182,7 +190,7 @@ jobs:
       # ── gateway ────────────────────────────────────────────────────────────
 
       - name: Build & push gateway
-        if: needs.changes.outputs.gateway == 'true'
+        if: needs.changes.outputs.gateway == 'true' || env.FORCE_REBUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./backend
@@ -195,7 +203,7 @@ jobs:
           cache-to:   type=gha,mode=max,scope=backend
 
       - name: Re-tag gateway (unchanged)
-        if: needs.changes.outputs.gateway == 'false'
+        if: needs.changes.outputs.gateway == 'false' && env.FORCE_REBUILD != 'true'
         run: |
           gcloud artifacts docker tags add \
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/gateway:latest \
@@ -204,7 +212,7 @@ jobs:
       # ── frontend ───────────────────────────────────────────────────────────
 
       - name: Build & push frontend
-        if: needs.changes.outputs.frontend == 'true'
+        if: needs.changes.outputs.frontend == 'true' || env.FORCE_REBUILD == 'true'
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
@@ -221,7 +229,7 @@ jobs:
           cache-to:   type=gha,mode=max,scope=frontend
 
       - name: Re-tag frontend (unchanged)
-        if: needs.changes.outputs.frontend == 'false'
+        if: needs.changes.outputs.frontend == 'false' && env.FORCE_REBUILD != 'true'
         run: |
           gcloud artifacts docker tags add \
             ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.AR_REPO }}/frontend:latest \
