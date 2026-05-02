@@ -381,6 +381,19 @@ resource "google_cloud_run_v2_service" "order_service" {
         value = "TLS"
       }
       env {
+        name = "SPRING_APPLICATION_JSON"
+        value = jsonencode({
+          grpc = {
+            client = {
+              "customer-service" = {
+                address         = "static://${trimprefix(google_cloud_run_v2_service.customer_service_grpc.uri, "https://")}:443"
+                negotiationType = "TLS"
+              }
+            }
+          }
+        })
+      }
+      env {
         name = "DB_PASSWORD"
         value_source {
           secret_key_ref {
