@@ -70,6 +70,7 @@ services:
       - DB_URL=jdbc:postgresql://postgres:5432/customer_db
       - DB_USERNAME=ctse
       - DB_PASSWORD=ctse_password
+      - ORDER_SERVICE_URL=http://order-service:8082
     depends_on:
       postgres:
         condition: service_healthy

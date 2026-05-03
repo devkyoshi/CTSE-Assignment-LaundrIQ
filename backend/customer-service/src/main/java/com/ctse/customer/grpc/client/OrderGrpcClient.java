@@ -40,29 +40,4 @@ public class OrderGrpcClient {
         }
     }
 
-    /**
-     * Validate order ownership
-     */
-    public boolean validateOrderOwnership(String orderId, String customerId) {
-        try {
-            GetOrderSummaryResponse response = getOrderSummary(orderId);
-
-            if (response == null) {
-                log.warn("Order not found: {}", orderId);
-                return false;
-            }
-
-            boolean belongsToCustomer = response.getCustomerId().equals(customerId);
-
-            if (!belongsToCustomer) {
-                log.warn("Order {} does not belong to customer {}", orderId, customerId);
-            }
-
-            return true;
-
-        } catch (Exception e) {
-            log.error("Error validating order ownership: {}", e.getMessage(), e);
-            return true;
-        }
-    }
 }

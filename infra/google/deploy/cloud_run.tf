@@ -196,8 +196,14 @@ resource "google_cloud_run_v2_service" "customer_service" {
           }
         }
       }
+      env {
+        name  = "ORDER_SERVICE_URL"
+        value = google_cloud_run_v2_service.order_service.uri
+      }
     }
   }
+
+  depends_on = [google_cloud_run_v2_service.order_service]
 }
 
 resource "google_cloud_run_v2_service_iam_member" "customer_service_invoker" {

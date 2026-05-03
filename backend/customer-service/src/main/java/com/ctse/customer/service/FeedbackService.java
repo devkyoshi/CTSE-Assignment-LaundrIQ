@@ -5,6 +5,7 @@ import com.ctse.customer.dto.FeedbackDto;
 import com.ctse.customer.dto.FeedbackRequest;
 import com.ctse.customer.dto.FeedbackSummaryDto;
 import com.ctse.customer.dto.FeedbackUpdateRequest;
+import com.ctse.customer.client.OrderRestClient;
 import com.ctse.customer.grpc.client.OrderGrpcClient;
 import com.ctse.customer.model.CustomerFeedback;
 import com.ctse.customer.model.CustomerFeedback.FeedbackStatus;
@@ -27,6 +28,7 @@ public class FeedbackService {
     private static final int COMMENT_SNIPPET_LENGTH = 100;
 
     private final CustomerFeedbackRepository feedbackRepository;
+    private final OrderRestClient orderRestClient;
     private final OrderGrpcClient orderGrpcClient;
 
     // ──────────────────────────────────────────────────────────────
@@ -38,8 +40,8 @@ public class FeedbackService {
         log.info("Submitting feedback for order: {} by customer: {}",
                 request.getOrderId(), request.getCustomerId());
 
-        // Validate that the order exists and belongs to the customer
-        boolean isValidOrder = orderGrpcClient.validateOrderOwnership(
+        // Validate that the order exists and belongs to the customer (order-service REST API)
+        boolean isValidOrder = orderRestClient.validateOrderOwnership(
                 request.getOrderId(),
                 request.getCustomerId()
         );
