@@ -117,7 +117,7 @@ export default function AddressesPage() {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-foreground flex items-center gap-2">
                         <MapPin className="h-8 w-8" />
-                        My Addresses
+                        Our Addresses
                     </h1>
                     <p className="text-sm text-muted-foreground mt-1">Manage your delivery addresses</p>
                 </div>
